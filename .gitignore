@@ -113,3 +113,9 @@ credentials.json
 
 # Claude Code local installation
 .claude/
+
+# Project-specific local files
+plans/
+CLAUDE.md
+ideas.txt
+claude-code-hooks-api-research-context-percentage-subagents-mcp-tools.md

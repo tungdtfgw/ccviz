@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/images/screenshot.png" alt="ccviz - Claude Code Visualization" width="800">
-</p>
-
 <h1 align="center">ccviz</h1>
 
 <p align="center">
@@ -33,6 +29,10 @@
 - **MCP tool calls** - visualized as food orders from the kitchen
 - **NPC interactions** - bartender, waiter, and chef with speech bubbles
 - **Live TV display** - shows real-time session activity stats
+
+<p align="center">
+  <img src="docs/images/screenshot.png" alt="ccviz screenshot" width="600">
+</p>
 
 ## Quick Start
 
