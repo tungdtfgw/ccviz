@@ -33,7 +33,7 @@ export class SubAgentManager {
 
   private setupStateListeners() {
     barState.on('agent:enter', (agent: Agent) => {
-      this.spawnAgent(agent.id, agent.type, agent.sessionId, agent.teamKey);
+      this.spawnAgent(agent.id, agent.type, agent.sessionId, agent.teamKey, agent.tableIndex);
     });
 
     barState.on('agent:leave', (agent: Agent) => {
@@ -45,14 +45,21 @@ export class SubAgentManager {
     });
   }
 
-  private findAvailableSpot(): SpotPosition | null {
+  // Find spot near session's table (same index as tableIndex)
+  private findSpotForTable(tableIndex: number): SpotPosition | null {
+    // First try exact spot matching tableIndex
+    const preferredSpot = this.spots[tableIndex];
+    if (preferredSpot && !preferredSpot.occupied) {
+      return preferredSpot;
+    }
+    // Fallback to any available spot if preferred is occupied
     return this.spots.find(s => !s.occupied) || null;
   }
 
-  spawnAgent(agentId: string, agentType: string, sessionId: string, teamKey: TeamKey) {
+  spawnAgent(agentId: string, agentType: string, sessionId: string, teamKey: TeamKey, tableIndex: number) {
     if (this.agents.has(agentId)) return;
 
-    const spot = this.findAvailableSpot();
+    const spot = this.findSpotForTable(tableIndex);
     if (!spot) {
       console.warn('[SubAgentManager] No available spots for agent:', agentId);
       return;
@@ -73,7 +80,7 @@ export class SubAgentManager {
     );
 
     this.agents.set(agentId, agent);
-    console.log(`[SubAgentManager] Spawned ${agentType} (${agentId}) with team ${teamKey}`);
+    console.log(`[SubAgentManager] Spawned ${agentType} (${agentId}) team=${teamKey} tableIndex=${tableIndex} spot=(${spot.x},${spot.y})`);
   }
 
   removeAgent(agentId: string) {

@@ -9,6 +9,7 @@ export type BarEventType =
   | 'tool:post'
   | 'skill:use'
   | 'context:update'
+  | 'context:reset'
   | 'state:sync';
 
 export interface BarEvent<T = unknown> {

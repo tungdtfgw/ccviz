@@ -63,6 +63,17 @@ export function handleEvent(event: BarEvent, io: SocketServer): void {
       break;
     }
 
+    case 'context:reset': {
+      // Context cleared (via /clear or /compact) - for future use if needed
+      const p = payload as { sessionId: string; percent: number };
+      const session = stateManager.getSession(p.sessionId);
+      if (session) {
+        stateManager.updateContext(p.sessionId, p.percent, 0);
+        io.emit('context:reset', event);
+      }
+      break;
+    }
+
     case 'tool:pre':
     case 'tool:post':
     case 'skill:use':

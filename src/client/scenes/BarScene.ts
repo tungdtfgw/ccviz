@@ -373,10 +373,11 @@ export class BarScene extends Phaser.Scene {
     // Sub-agent lifecycle with description
     socketClient.on('subagent:start', (e: BarEvent) => {
       const p = e.payload as SubagentPayload;
-      const sessionId = p.sessionId || barState.getAllSessions()[0]?.sessionId;
-      if (sessionId) {
-        barState.addAgent(sessionId, p.agentId, p.agentType, p.description);
+      if (!p.sessionId) {
+        console.warn('[BarScene] subagent:start without sessionId, ignoring');
+        return;
       }
+      barState.addAgent(p.sessionId, p.agentId, p.agentType, p.description);
     });
 
     // Sub-agent stop with result
@@ -412,6 +413,20 @@ export class BarScene extends Phaser.Scene {
         return;
       }
       barState.updateContext(p.sessionId, p.percent, p.tokens);
+    });
+
+    // Context reset (/clear or /compact) - for future use if needed
+    socketClient.on('context:reset', (e: BarEvent) => {
+      const p = e.payload as { sessionId: string; percent: number };
+      const session = barState.getSession(p.sessionId);
+      if (!session) {
+        console.warn(`[BarScene] context:reset for unknown session ${p.sessionId}, ignoring`);
+        return;
+      }
+      barState.emit('context:reset', { sessionId: p.sessionId, percent: p.percent });
+      session.contextPercent = p.percent;
+      session.tokensUsed = 0;
+      console.log(`[BarScene] Context reset for ${p.sessionId}, new level: ${p.percent}%`);
     });
 
     // Skill usage

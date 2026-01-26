@@ -45,7 +45,7 @@ class SocketClient {
       'session:start', 'session:end',
       'subagent:start', 'subagent:stop',
       'tool:pre', 'tool:post',
-      'skill:use', 'context:update',
+      'skill:use', 'context:update', 'context:reset',
       'state:sync'
     ];
 

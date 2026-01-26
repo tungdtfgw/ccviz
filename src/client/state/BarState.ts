@@ -14,6 +14,7 @@ export interface Agent {
   type: string;
   sessionId: string;
   teamKey: TeamKey;
+  tableIndex: number;
   description?: string;
   result?: string;
 }
@@ -109,19 +110,16 @@ class BarState extends EventEmitter<BarStateEvents> {
   addAgent(sessionId: string, agentId: string, agentType: string, description?: string): Agent | null {
     const session = this.state.sessions.get(sessionId);
     if (!session) {
-      // Try to find any session if sessionId not found
-      const firstSession = this.getAllSessions()[0];
-      if (!firstSession) return null;
-      sessionId = firstSession.sessionId;
+      console.warn(`[BarState] addAgent: Session ${sessionId} not found, skipping agent ${agentId}`);
+      return null;
     }
-
-    const resolvedSession = this.state.sessions.get(sessionId)!;
     
     const agent: Agent = {
       id: agentId,
       type: agentType,
       sessionId,
-      teamKey: resolvedSession.teamKey,
+      teamKey: session.teamKey,
+      tableIndex: session.tableIndex,
       description
     };
 
