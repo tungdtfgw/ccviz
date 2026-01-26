@@ -4,7 +4,7 @@
 import Phaser from 'phaser';
 import { TEAMS, type TeamKey } from '@shared/teams';
 
-type CustomerState = 'entering' | 'seated' | 'drinking' | 'eating' | 'phoning' | 'leaving';
+type CustomerState = 'entering' | 'seated' | 'drinking' | 'eating' | 'phoning' | 'walking_to_phone' | 'at_phone' | 'walking_back' | 'leaving';
 
 export class SessionCustomer extends Phaser.GameObjects.Container {
   private sprite: Phaser.GameObjects.Sprite;
@@ -16,6 +16,7 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
   private currentState: CustomerState = 'entering';
   private drinkQueue: number = 0;
   private eatQueue: number = 0;
+  private beerTowerDetached: boolean = false;
 
   public sessionId: string;
   public teamKey: TeamKey;
@@ -242,6 +243,99 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
     if (this.currentState !== 'phoning') return;
     this.currentState = 'seated';
     this.sprite.play(`fan-${this.teamKey}-idle`);
+  }
+
+  // Walk to phone booth for MCP call
+  walkToPhoneBooth(boothX: number, boothY: number, onArrive: () => void) {
+    // Block if already leaving, walking to phone, or at phone
+    if (this.currentState === 'leaving' || this.currentState === 'walking_to_phone' || this.currentState === 'at_phone') return;
+
+    // If walking back from phone, cancel and return to phone booth
+    if (this.currentState === 'walking_back') {
+      this.scene.tweens.killTweensOf(this);
+    }
+
+    this.currentState = 'walking_to_phone';
+    this.sprite.play(`fan-${this.teamKey}-walk`);
+    this.sprite.setFlipX(boothX < this.x);
+
+    // Detach beer tower - keep it at the table (only if not already detached)
+    if (this.beerTower.visible && !this.beerTowerDetached) {
+      const worldX = this.seatX + 30; // Use seatX, not current x
+      const worldY = this.seatY - 10;
+      this.remove(this.beerTower);
+      this.beerTower.setPosition(worldX, worldY);
+      this.scene.add.existing(this.beerTower);
+      this.beerTower.setDepth(this.seatY + 5);
+
+      // Also detach labels
+      this.remove(this.contextLabel);
+      this.remove(this.tokensLabel);
+      this.contextLabel.setPosition(worldX - 30, this.seatY + 25);
+      this.tokensLabel.setPosition(worldX - 30, this.seatY + 38);
+      this.scene.add.existing(this.contextLabel);
+      this.scene.add.existing(this.tokensLabel);
+
+      this.beerTowerDetached = true;
+    }
+
+    this.scene.tweens.add({
+      targets: this,
+      x: boothX + 30, // Stand next to booth
+      y: boothY - 20,
+      duration: 800,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        this.currentState = 'at_phone';
+        this.sprite.setFlipX(false); // Face forward
+        this.sprite.play(`fan-${this.teamKey}-phone`);
+        this.setDepth(boothY);
+        onArrive();
+      }
+    });
+  }
+
+  // Walk back to seat after MCP call ends
+  walkBackToSeat(onArrive?: () => void) {
+    if (this.currentState !== 'at_phone') return;
+
+    this.currentState = 'walking_back';
+    this.sprite.play(`fan-${this.teamKey}-walk`);
+    this.sprite.setFlipX(this.seatX > this.x);
+
+    this.scene.tweens.add({
+      targets: this,
+      x: this.seatX,
+      y: this.seatY,
+      duration: 800,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        this.currentState = 'seated';
+        this.sprite.setFlipX(false);
+        this.sprite.play(`fan-${this.teamKey}-idle`);
+        this.setDepth(this.seatY);
+        onArrive?.();
+      }
+    });
+  }
+
+  // Check if customer is available for MCP call (must be seated or doing interruptible activity)
+  canMakeCall(): boolean {
+    return this.currentState !== 'leaving' &&
+           this.currentState !== 'entering' &&
+           this.currentState !== 'walking_to_phone' &&
+           this.currentState !== 'at_phone' &&
+           this.currentState !== 'walking_back';
+  }
+
+  // Check if customer is walking back from phone booth
+  isWalkingBack(): boolean {
+    return this.currentState === 'walking_back';
+  }
+
+  // Check if customer is seated at their table
+  isSeated(): boolean {
+    return this.currentState === 'seated';
   }
 
   // Show beer tower (called when waiter delivers)

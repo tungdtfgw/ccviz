@@ -18,14 +18,20 @@ export class SessionCustomerManager {
   private customers: Map<string, SessionCustomer> = new Map();
   private tables: TablePosition[];
   private entrancePos: { x: number; y: number };
+  private phoneBoothPos: { x: number; y: number } = { x: 60, y: 280 };
+  private customerAtPhone: SessionCustomer | null = null;
+  private onMcpStartCallback: ((serverName: string) => void) | null = null;
+  private onMcpEndCallback: (() => void) | null = null;
 
   constructor(
     scene: Phaser.Scene,
     tables: { x: number; y: number }[],
-    entrance: { x: number; y: number }
+    entrance: { x: number; y: number },
+    phoneBooth?: { x: number; y: number }
   ) {
     this.scene = scene;
     this.entrancePos = entrance;
+    if (phoneBooth) this.phoneBoothPos = phoneBooth;
 
     // Initialize 8 table positions
     this.tables = tables.map(t => ({
@@ -67,8 +73,70 @@ export class SessionCustomerManager {
       }
     });
 
+    // MCP call events - customer walks to phone booth
+    barState.on('mcp:start', (serverName: string) => {
+      this.handleMcpStart(serverName);
+    });
+
+    barState.on('mcp:end', () => {
+      this.handleMcpEnd();
+    });
+
     // Note: Don't listen to bar:close here - session:close already handles customer exit
     // with proper walk animation. bar:close would call clearAll() which destroys immediately.
+  }
+
+  // Handle MCP call start - find a customer to walk to phone booth
+  private handleMcpStart(serverName: string) {
+    // If customer is walking back from phone, redirect them back to phone booth
+    if (this.customerAtPhone && this.customerAtPhone.isWalkingBack()) {
+      this.customerAtPhone.walkToPhoneBooth(this.phoneBoothPos.x, this.phoneBoothPos.y, () => {
+        this.onMcpStartCallback?.(serverName);
+      });
+      return;
+    }
+
+    // If already have a customer at phone or walking to phone, just update the call display
+    if (this.customerAtPhone) {
+      // Customer already at phone booth - just show new server name when they arrive
+      console.log('[CustomerManager] MCP call while customer already at/going to phone');
+      return;
+    }
+
+    // Find first available customer
+    const availableCustomer = this.getAllCustomers().find(c => c.canMakeCall());
+    if (!availableCustomer) {
+      console.log('[CustomerManager] No available customer for MCP call');
+      return;
+    }
+
+    this.customerAtPhone = availableCustomer;
+    availableCustomer.walkToPhoneBooth(this.phoneBoothPos.x, this.phoneBoothPos.y, () => {
+      // Customer arrived at phone booth - notify PhoneBooth to show bubble
+      this.onMcpStartCallback?.(serverName);
+    });
+  }
+
+  // Handle MCP call end - customer walks back to seat
+  private handleMcpEnd() {
+    if (!this.customerAtPhone) return;
+
+    const customer = this.customerAtPhone;
+    customer.walkBackToSeat(() => {
+      // Only hide phone booth and clear if customer actually returned to seat
+      // (state is now 'seated', not 'at_phone' or 'walking_to_phone' from a new call)
+      if (customer.isSeated()) {
+        this.onMcpEndCallback?.();
+        this.customerAtPhone = null;
+      }
+      // If customer is at phone or walking to phone (new call), don't hide
+    });
+  }
+
+  // Set callbacks for PhoneBooth integration
+  setMcpCallbacks(onStart: (serverName: string) => void, onEnd: () => void) {
+    this.onMcpStartCallback = onStart;
+    this.onMcpEndCallback = onEnd;
   }
 
   private getTable(tableIndex: number): TablePosition | null {
@@ -149,6 +217,12 @@ export class SessionCustomerManager {
   removeCustomer(sessionId: string) {
     const customer = this.customers.get(sessionId);
     if (!customer) return;
+
+    // If this customer is at phone booth, clear the reference and hide phone booth
+    if (this.customerAtPhone === customer) {
+      this.onMcpEndCallback?.();
+      this.customerAtPhone = null;
+    }
 
     // Free the table
     const tableIndex = customer.tableIndex;
