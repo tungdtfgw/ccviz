@@ -1,10 +1,12 @@
 // Session customer sprite - represents one CC session as a football fan
 // Sits at their own table with a beer tower showing context usage
+// Supports multiple food sprites from MCP calls
 
 import Phaser from 'phaser';
 import { TEAMS, type TeamKey } from '@shared/teams';
+import { SpeechBubble } from './SpeechBubble';
 
-type CustomerState = 'entering' | 'seated' | 'drinking' | 'eating' | 'phoning' | 'walking_to_phone' | 'at_phone' | 'walking_back' | 'leaving';
+type CustomerState = 'entering' | 'seated' | 'drinking' | 'eating' | 'leaving';
 
 export class SessionCustomer extends Phaser.GameObjects.Container {
   private sprite: Phaser.GameObjects.Sprite;
@@ -13,10 +15,15 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
   private beerTower: Phaser.GameObjects.Sprite;
   private contextLabel: Phaser.GameObjects.Text;
   private tokensLabel: Phaser.GameObjects.Text;
+  private speechBubble: SpeechBubble;
+  private foodSprites: Phaser.GameObjects.Sprite[] = []; // Multiple foods from MCP calls
   private currentState: CustomerState = 'entering';
   private drinkQueue: number = 0;
   private eatQueue: number = 0;
   private beerTowerDetached: boolean = false;
+  private lastBeerPercent: number = 100; // Track previous beer level for animation
+  private beerLevelMask?: Phaser.GameObjects.Graphics; // Mask for smooth beer drain
+  private beerBubbles: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
 
   public sessionId: string;
   public teamKey: TeamKey;
@@ -98,6 +105,13 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
 
     // Set depth based on Y position for proper layering
     this.setDepth(seatY);
+
+    // Speech bubble for customer speech (MCP orders, 4s for readable timing)
+    this.speechBubble = new SpeechBubble(scene, seatX, seatY - 70, {
+      maxWidth: 140,
+      autoAdvanceMs: 4000,
+      teamColor: team.primary
+    });
 
     this.createAnimations();
     this.walkToSeat(seatX, seatY);
@@ -226,106 +240,44 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
     });
   }
 
-  // Start phone animation
-  startPhone() {
-    if (this.currentState === 'leaving') return;
-    this.currentState = 'phoning';
-    this.sprite.play(`fan-${this.teamKey}-phone`);
+  // Speak a message via speech bubble (for MCP orders)
+  speak(message: string) {
+    this.speechBubble.setText(message);
   }
 
-  // Stop phone and return to idle
-  stopPhone() {
-    if (this.currentState !== 'phoning') return;
-    this.currentState = 'seated';
-    this.sprite.play(`fan-${this.teamKey}-idle`);
+  // Add food sprite to customer's table (from MCP chef delivery)
+  addFood(foodType: string) {
+    const foodFrames: Record<string, number> = {
+      beer: 0, pizza: 1, burger: 2, coffee: 3,
+      sandwich: 4, sushi: 5, steak: 6, salad: 7, cake: 8, wine: 9
+    };
+    const frame = foodFrames[foodType] ?? 2;
+
+    // Position foods in a row on the table
+    const offsetX = -15 + (this.foodSprites.length % 3) * 15;
+    const offsetY = -20 + Math.floor(this.foodSprites.length / 3) * 10;
+
+    const foodSprite = this.scene.add.sprite(this.seatX + offsetX, this.seatY + offsetY, 'food');
+    foodSprite.setOrigin(0.5, 1);
+    foodSprite.setScale(1.2);
+    foodSprite.setFrame(frame);
+    foodSprite.setDepth(this.seatY + 2);
+
+    this.foodSprites.push(foodSprite);
+
+    // Trigger eating animation
+    this.eat();
   }
 
-  // Walk to phone booth for MCP call
-  walkToPhoneBooth(boothX: number, boothY: number, onArrive: () => void) {
-    // Block if already leaving, walking to phone, or at phone
-    if (this.currentState === 'leaving' || this.currentState === 'walking_to_phone' || this.currentState === 'at_phone') return;
-
-    // If walking back from phone, cancel and return to phone booth
-    if (this.currentState === 'walking_back') {
-      this.scene.tweens.killTweensOf(this);
-    }
-
-    this.currentState = 'walking_to_phone';
-    this.sprite.play(`fan-${this.teamKey}-walk`);
-    this.sprite.setFlipX(boothX < this.x);
-
-    // Detach beer tower - keep it at the table (only if not already detached)
-    if (this.beerTower.visible && !this.beerTowerDetached) {
-      const worldX = this.seatX + 30; // Use seatX, not current x
-      const worldY = this.seatY - 10;
-      this.remove(this.beerTower);
-      this.beerTower.setPosition(worldX, worldY);
-      this.scene.add.existing(this.beerTower);
-      this.beerTower.setDepth(this.seatY + 5);
-
-      // Also detach labels
-      this.remove(this.contextLabel);
-      this.remove(this.tokensLabel);
-      this.contextLabel.setPosition(worldX - 30, this.seatY + 25);
-      this.tokensLabel.setPosition(worldX - 30, this.seatY + 38);
-      this.scene.add.existing(this.contextLabel);
-      this.scene.add.existing(this.tokensLabel);
-
-      this.beerTowerDetached = true;
-    }
-
-    this.scene.tweens.add({
-      targets: this,
-      x: boothX + 30, // Stand next to booth
-      y: boothY - 20,
-      duration: 800,
-      ease: 'Sine.easeInOut',
-      onComplete: () => {
-        this.currentState = 'at_phone';
-        this.sprite.setFlipX(false); // Face forward
-        this.sprite.play(`fan-${this.teamKey}-phone`);
-        this.setDepth(boothY);
-        onArrive();
-      }
-    });
+  // Clear all food sprites (when MCP flow ends)
+  clearAllFoods() {
+    this.foodSprites.forEach(sprite => sprite.destroy());
+    this.foodSprites = [];
   }
 
-  // Walk back to seat after MCP call ends
-  walkBackToSeat(onArrive?: () => void) {
-    if (this.currentState !== 'at_phone') return;
-
-    this.currentState = 'walking_back';
-    this.sprite.play(`fan-${this.teamKey}-walk`);
-    this.sprite.setFlipX(this.seatX > this.x);
-
-    this.scene.tweens.add({
-      targets: this,
-      x: this.seatX,
-      y: this.seatY,
-      duration: 800,
-      ease: 'Sine.easeInOut',
-      onComplete: () => {
-        this.currentState = 'seated';
-        this.sprite.setFlipX(false);
-        this.sprite.play(`fan-${this.teamKey}-idle`);
-        this.setDepth(this.seatY);
-        onArrive?.();
-      }
-    });
-  }
-
-  // Check if customer is available for MCP call (must be seated or doing interruptible activity)
-  canMakeCall(): boolean {
-    return this.currentState !== 'leaving' &&
-           this.currentState !== 'entering' &&
-           this.currentState !== 'walking_to_phone' &&
-           this.currentState !== 'at_phone' &&
-           this.currentState !== 'walking_back';
-  }
-
-  // Check if customer is walking back from phone booth
-  isWalkingBack(): boolean {
-    return this.currentState === 'walking_back';
+  // Get food count for consecutive MCP tracking
+  getFoodCount(): number {
+    return this.foodSprites.length;
   }
 
   // Check if customer is seated at their table
@@ -341,14 +293,24 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
   }
 
   // Update beer tower level (contextPercent = used, display remaining)
+  // Animates beer draining smoothly when context increases
   updateBeerLevel(contextPercent: number, tokens: number = 0, triggerDrink: boolean = false) {
     // Beer level = remaining context (100 - used)
     const remaining = 100 - contextPercent;
+    const prevRemaining = this.lastBeerPercent;
 
     // Trigger drink animation if context increased (user asked something)
     if (triggerDrink) {
       this.drink();
     }
+
+    // Animate beer draining if level decreased
+    if (remaining < prevRemaining) {
+      this.animateBeerDrain(prevRemaining, remaining);
+    }
+
+    // Update tracked level
+    this.lastBeerPercent = remaining;
 
     // Frame calculation: 0=full(>75%), 1=75%, 2=50%, 3=25%, 4=empty
     let frame = 0;
@@ -358,8 +320,6 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
     else if (remaining <= 75) frame = 1;
     else frame = 0;
 
-    // Debug: uncomment to trace beer tower updates
-    // console.log(`[BeerTower] ${this.sessionId}: used=${contextPercent}%, remaining=${remaining}%, frame=${frame}`);
     this.beerTower.setFrame(frame);
 
     // Update context label - show "Remaining: X%" with color coding
@@ -387,6 +347,72 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
     }
   }
 
+  // Animate beer draining with bubbles and tint effect
+  private animateBeerDrain(fromPercent: number, toPercent: number) {
+    const drainAmount = fromPercent - toPercent;
+    const duration = Math.min(800, Math.max(300, drainAmount * 15)); // 300-800ms based on drain
+
+    // Create bubble particles rising in beer tower
+    this.spawnDrainBubbles(duration);
+
+    // Flash beer tower golden when drinking
+    this.scene.tweens.add({
+      targets: this.beerTower,
+      alpha: 0.7,
+      duration: duration / 3,
+      yoyo: true,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        this.beerTower.setAlpha(1);
+      }
+    });
+
+    // Slight scale wobble to show liquid movement
+    this.scene.tweens.add({
+      targets: this.beerTower,
+      scaleX: 0.75,
+      duration: duration / 4,
+      yoyo: true,
+      repeat: 1,
+      ease: 'Sine.easeInOut',
+      onComplete: () => {
+        this.beerTower.setScale(0.8);
+      }
+    });
+  }
+
+  // Spawn rising bubbles during beer drain
+  private spawnDrainBubbles(duration: number) {
+    // Create small circle particles as bubbles
+    const beerWorldX = this.x + 30; // Beer tower offset
+    const beerWorldY = this.y - 25;
+
+    // Spawn 3-6 bubble sprites that rise and fade
+    const bubbleCount = 3 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < bubbleCount; i++) {
+      const bubble = this.scene.add.circle(
+        beerWorldX + (Math.random() - 0.5) * 12,
+        beerWorldY + Math.random() * 15,
+        2 + Math.random() * 2,
+        0xFFD700, // Golden beer color
+        0.8
+      );
+      bubble.setDepth(this.seatY + 5);
+
+      // Animate bubble rising and fading
+      this.scene.tweens.add({
+        targets: bubble,
+        y: bubble.y - 20 - Math.random() * 15,
+        alpha: 0,
+        scale: 0.3,
+        duration: duration * 0.6 + Math.random() * 200,
+        delay: i * 50,
+        ease: 'Sine.easeOut',
+        onComplete: () => bubble.destroy()
+      });
+    }
+  }
+
   private formatTokens(num: number): string {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
@@ -400,6 +426,12 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
     this.currentState = 'leaving';
     this.sprite.play(`fan-${this.teamKey}-walk`);
     this.sprite.setFlipX(exitX > this.x);
+
+    // Clear any food sprites
+    this.clearAllFoods();
+
+    // Hide speech bubble
+    this.speechBubble?.hide();
 
     // Detach beer tower from container and reparent to scene (if visible)
     let orphanBeerTower: Phaser.GameObjects.Sprite | null = null;

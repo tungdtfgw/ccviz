@@ -30,7 +30,7 @@ interface BarStateEvents {
   'bar:open': [];
   'bar:close': [];
   'session:open': [session: SessionState];
-  'session:close': [data: { sessionId: string }];
+  'session:close': [data: { sessionId: string; tableIndex: number }];
   'agent:enter': [agent: Agent];
   'agent:leave': [agent: Agent];
   'context:update': [data: { sessionId: string; percent: number; tokens: number; prevPercent?: number }];
@@ -86,6 +86,8 @@ class BarState extends EventEmitter<BarStateEvents> {
     const session = this.state.sessions.get(sessionId);
     if (!session) return;
 
+    const tableIndex = session.tableIndex;
+
     // Remove agents associated with this session
     this.state.activeAgents.forEach((agent, agentId) => {
       if (agent.sessionId === sessionId) {
@@ -95,7 +97,7 @@ class BarState extends EventEmitter<BarStateEvents> {
     });
 
     this.state.sessions.delete(sessionId);
-    this.emit('session:close', { sessionId });
+    this.emit('session:close', { sessionId, tableIndex });
     console.log(`[BarState] Session closed: ${sessionId}`);
 
     if (this.state.sessions.size === 0) {

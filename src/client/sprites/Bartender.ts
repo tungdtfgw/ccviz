@@ -1,11 +1,15 @@
 // Bartender NPC - stays behind counter, prepares beer, idle animations
+// Has name tag "claude-code" and can speak via speech bubble
 
 import Phaser from 'phaser';
+import { SpeechBubble } from './SpeechBubble';
 
 type BartenderState = 'idle' | 'wipe' | 'prepare';
 
 export class Bartender extends Phaser.GameObjects.Container {
   private sprite: Phaser.GameObjects.Sprite;
+  private nameTag: Phaser.GameObjects.Text;
+  private speechBubble: SpeechBubble;
   private currentState: BartenderState = 'idle';
   private idleTimer?: Phaser.Time.TimerEvent;
   private prepareCallback?: () => void;
@@ -17,10 +21,23 @@ export class Bartender extends Phaser.GameObjects.Container {
     this.sprite.setOrigin(0.5, 1);
     this.sprite.setScale(1.1); // Slightly larger
 
-    this.add(this.sprite);
+    // Name tag "claude-code"
+    this.nameTag = scene.add.text(0, -55, 'claude-code', {
+      fontSize: '9px',
+      fontFamily: 'monospace',
+      color: '#ffffff',
+      backgroundColor: '#D2691E', // Warm amber/bartender color
+      padding: { x: 3, y: 1 }
+    });
+    this.nameTag.setOrigin(0.5, 1);
+
+    this.add([this.sprite, this.nameTag]);
     scene.add.existing(this);
 
-    this.setDepth(500); // Behind counter depth
+    this.setDepth(535); // Above counter (530) but below items on counter (540)
+
+    // Speech bubble above bartender (4s display for readable timing)
+    this.speechBubble = new SpeechBubble(scene, x, y - 70, { maxWidth: 140, autoAdvanceMs: 4000 });
 
     this.createAnimations();
     this.startIdleLoop();
@@ -113,8 +130,14 @@ export class Bartender extends Phaser.GameObjects.Container {
     });
   }
 
+  // Speak a message via speech bubble
+  speak(message: string, teamColor?: string) {
+    this.speechBubble.setText(message, teamColor);
+  }
+
   destroy() {
     this.idleTimer?.destroy();
+    this.speechBubble?.destroy();
     super.destroy();
   }
 }

@@ -44,6 +44,16 @@ export class PreloadScene extends Phaser.Scene {
     this.createSimpleTexture('bottle', 10, 28, this.drawBottle.bind(this));
     this.createSimpleTexture('desk-phone', 32, 24, this.drawDeskPhone.bind(this));
     this.createSimpleTexture('speaker-system', 120, 30, this.drawSpeakerSystem.bind(this));
+
+    // Team logo badges (24x24 simplified)
+    this.createSimpleTexture('logo-mu', 24, 24, this.drawLogoMU.bind(this));
+    this.createSimpleTexture('logo-chelsea', 24, 24, this.drawLogoChelsea.bind(this));
+    this.createSimpleTexture('logo-arsenal', 24, 24, this.drawLogoArsenal.bind(this));
+    this.createSimpleTexture('logo-real-madrid', 24, 24, this.drawLogoRealMadrid.bind(this));
+    this.createSimpleTexture('logo-barcelona', 24, 24, this.drawLogoBarcelona.bind(this));
+    this.createSimpleTexture('logo-juventus', 24, 24, this.drawLogoJuventus.bind(this));
+    this.createSimpleTexture('logo-ac-milan', 24, 24, this.drawLogoACMilan.bind(this));
+    this.createSimpleTexture('logo-liverpool', 24, 24, this.drawLogoLiverpool.bind(this));
   }
 
   // Create team spritesheet (48x48, 24 frames)
@@ -1149,6 +1159,152 @@ export class PreloadScene extends Phaser.Scene {
     ctx.beginPath();
     ctx.arc(10, 4, 5, 0, Math.PI * 2);
     ctx.stroke();
+  }
+
+  // Manchester United - Red devil shield
+  private drawLogoMU(ctx: CanvasRenderingContext2D) {
+    // Red shield background
+    ctx.fillStyle = '#DA291C';
+    ctx.beginPath();
+    ctx.moveTo(12, 2);
+    ctx.lineTo(22, 6);
+    ctx.lineTo(22, 16);
+    ctx.lineTo(12, 22);
+    ctx.lineTo(2, 16);
+    ctx.lineTo(2, 6);
+    ctx.closePath();
+    ctx.fill();
+    // Yellow devil outline
+    ctx.fillStyle = '#FFE500';
+    ctx.fillRect(8, 8, 8, 6);
+    ctx.fillRect(6, 10, 3, 2);
+    ctx.fillRect(15, 10, 3, 2);
+  }
+
+  // Chelsea - Blue lion
+  private drawLogoChelsea(ctx: CanvasRenderingContext2D) {
+    // Blue circle background
+    ctx.fillStyle = '#034694';
+    ctx.beginPath();
+    ctx.arc(12, 12, 10, 0, Math.PI * 2);
+    ctx.fill();
+    // Gold border
+    ctx.strokeStyle = '#DBA111';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(12, 12, 10, 0, Math.PI * 2);
+    ctx.stroke();
+    // Lion silhouette (simplified)
+    ctx.fillStyle = '#DBA111';
+    ctx.fillRect(8, 8, 8, 8);
+    ctx.fillRect(10, 6, 4, 2);
+  }
+
+  // Arsenal - Red cannon
+  private drawLogoArsenal(ctx: CanvasRenderingContext2D) {
+    // Red circle background
+    ctx.fillStyle = '#EF0107';
+    ctx.beginPath();
+    ctx.arc(12, 12, 10, 0, Math.PI * 2);
+    ctx.fill();
+    // White cannon
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(4, 10, 16, 4);
+    ctx.fillRect(16, 8, 4, 2);
+    ctx.fillRect(4, 8, 3, 2);
+    ctx.fillRect(4, 14, 3, 2);
+  }
+
+  // Real Madrid - White crown
+  private drawLogoRealMadrid(ctx: CanvasRenderingContext2D) {
+    // White/cream circle background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(12, 12, 10, 0, Math.PI * 2);
+    ctx.fill();
+    // Gold border
+    ctx.strokeStyle = '#DBA111';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(12, 12, 10, 0, Math.PI * 2);
+    ctx.stroke();
+    // Crown (gold)
+    ctx.fillStyle = '#DBA111';
+    ctx.fillRect(6, 8, 12, 8);
+    ctx.fillRect(4, 6, 4, 4);
+    ctx.fillRect(10, 4, 4, 4);
+    ctx.fillRect(16, 6, 4, 4);
+  }
+
+  // Barcelona - Blue/red stripes
+  private drawLogoBarcelona(ctx: CanvasRenderingContext2D) {
+    // Blue base
+    ctx.fillStyle = '#004D98';
+    ctx.beginPath();
+    ctx.arc(12, 12, 10, 0, Math.PI * 2);
+    ctx.fill();
+    // Red stripes
+    ctx.fillStyle = '#A50044';
+    ctx.fillRect(2, 6, 4, 16);
+    ctx.fillRect(10, 6, 4, 16);
+    ctx.fillRect(18, 6, 4, 16);
+    // Yellow cross detail
+    ctx.fillStyle = '#FFCC00';
+    ctx.fillRect(10, 2, 4, 4);
+  }
+
+  // Juventus - Black/white stripes
+  private drawLogoJuventus(ctx: CanvasRenderingContext2D) {
+    // White base
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(12, 12, 10, 0, Math.PI * 2);
+    ctx.fill();
+    // Black stripes
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(4, 2, 4, 20);
+    ctx.fillRect(12, 2, 4, 20);
+    // Border
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(12, 12, 10, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // AC Milan - Red/black diagonal
+  private drawLogoACMilan(ctx: CanvasRenderingContext2D) {
+    // White base
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(12, 12, 10, 0, Math.PI * 2);
+    ctx.fill();
+    // Red stripes
+    ctx.fillStyle = '#FB090B';
+    ctx.fillRect(2, 4, 6, 16);
+    ctx.fillRect(16, 4, 6, 16);
+    // Black center
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(8, 4, 8, 16);
+    // Red inner
+    ctx.fillStyle = '#FB090B';
+    ctx.fillRect(10, 6, 4, 12);
+  }
+
+  // Liverpool - Red liver bird
+  private drawLogoLiverpool(ctx: CanvasRenderingContext2D) {
+    // Red circle background
+    ctx.fillStyle = '#C8102E';
+    ctx.beginPath();
+    ctx.arc(12, 12, 10, 0, Math.PI * 2);
+    ctx.fill();
+    // Liver bird silhouette (simplified)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(10, 4, 4, 4);   // Head
+    ctx.fillRect(8, 8, 8, 6);    // Body
+    ctx.fillRect(6, 10, 4, 2);   // Wing left
+    ctx.fillRect(14, 10, 4, 2);  // Wing right
+    ctx.fillRect(10, 14, 4, 6);  // Tail
   }
 
   create() {

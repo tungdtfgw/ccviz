@@ -13,7 +13,6 @@ interface BubbleConfig {
 export class SpeechBubble extends Phaser.GameObjects.Container {
   private background: Phaser.GameObjects.Graphics;
   private textObj: Phaser.GameObjects.Text;
-  private skipBtn: Phaser.GameObjects.Text;
   private sentences: string[] = [];
   private currentIndex: number = 0;
   private autoAdvanceTimer?: Phaser.Time.TimerEvent;
@@ -26,7 +25,7 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
     this.config = {
       maxWidth: config?.maxWidth ?? 150,
       fontSize: config?.fontSize ?? 8,
-      autoAdvanceMs: config?.autoAdvanceMs ?? 5000,
+      autoAdvanceMs: config?.autoAdvanceMs ?? 4000, // 4 seconds default for readable timing
       teamColor: config?.teamColor ?? '#000000'
     };
 
@@ -47,16 +46,7 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
     this.textObj.setOrigin(0.5, 0.5);
     this.add(this.textObj);
 
-    // Skip button
-    this.skipBtn = scene.add.text(0, 0, '[x]', {
-      fontSize: '8px',
-      fontFamily: 'monospace',
-      color: '#666666'
-    });
-    this.skipBtn.setOrigin(1, 0);
-    this.skipBtn.setInteractive({ useHandCursor: true });
-    this.skipBtn.on('pointerdown', () => this.skip());
-    this.add(this.skipBtn);
+    // No skip button - auto-dismiss only
 
     scene.add.existing(this);
     this.setVisible(false);
@@ -94,10 +84,6 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
     // Redraw background
     this.drawBubble();
 
-    // Position skip button
-    const bounds = this.textObj.getBounds();
-    this.skipBtn.setPosition(bounds.width / 2 + 4, -bounds.height / 2 - 4);
-
     this.setVisible(true);
 
     // Auto-advance timer
@@ -134,12 +120,6 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
   advance() {
     this.currentIndex++;
     this.showCurrentSentence();
-  }
-
-  skip() {
-    this.autoAdvanceTimer?.destroy();
-    this.hide();
-    this.emit('skip');
   }
 
   hide() {

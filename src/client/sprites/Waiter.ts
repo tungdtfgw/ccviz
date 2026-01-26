@@ -1,7 +1,9 @@
 // Waiter NPC - walks between counter/kitchen and tables to deliver beer/food
+// Has name tag "claude-kit" and can speak via speech bubble
 
 import Phaser from 'phaser';
 import EventEmitter from 'eventemitter3';
+import { SpeechBubble } from './SpeechBubble';
 
 type WaiterState = 'idle' | 'walking' | 'carrying';
 
@@ -32,6 +34,8 @@ interface WaiterEvents {
 
 export class Waiter extends Phaser.GameObjects.Container {
   private sprite: Phaser.GameObjects.Sprite;
+  private nameTag: Phaser.GameObjects.Text;
+  private speechBubble: SpeechBubble;
   private carrySprite?: Phaser.GameObjects.Sprite;
   private carryFoodSprite?: Phaser.GameObjects.Sprite;
   private currentState: WaiterState = 'idle';
@@ -62,10 +66,23 @@ export class Waiter extends Phaser.GameObjects.Container {
     this.sprite = scene.add.sprite(0, 0, 'waiter');
     this.sprite.setOrigin(0.5, 1);
 
-    this.add(this.sprite);
+    // Name tag "claude-kit"
+    this.nameTag = scene.add.text(0, -50, 'claude-kit', {
+      fontSize: '9px',
+      fontFamily: 'monospace',
+      color: '#ffffff',
+      backgroundColor: '#8B0000', // Burgundy (matches waiter vest)
+      padding: { x: 3, y: 1 }
+    });
+    this.nameTag.setOrigin(0.5, 1);
+
+    this.add([this.sprite, this.nameTag]);
     scene.add.existing(this);
 
     this.setDepth(y); // Dynamic depth based on Y
+
+    // Speech bubble above waiter (4s for readable timing, follows waiter)
+    this.speechBubble = new SpeechBubble(scene, x, y - 65, { maxWidth: 120, autoAdvanceMs: 4000 });
 
     this.createAnimations();
     this.playIdle();
@@ -275,6 +292,8 @@ export class Waiter extends Phaser.GameObjects.Container {
         onUpdate: () => {
           // Update depth while walking
           this.setDepth(this.y);
+          // Update speech bubble position to follow waiter
+          this.speechBubble.setPosition(this.x, this.y - 65);
         },
         onComplete: () => {
           this.sprite.setFlipX(false);
@@ -361,5 +380,17 @@ export class Waiter extends Phaser.GameObjects.Container {
 
   getQueueLength(): number {
     return this.deliveryQueue.length + this.foodQueue.length;
+  }
+
+  // Speak a message via speech bubble
+  speak(message: string, teamColor?: string) {
+    // Update bubble position to current waiter position
+    this.speechBubble.setPosition(this.x, this.y - 65);
+    this.speechBubble.setText(message, teamColor);
+  }
+
+  destroy() {
+    this.speechBubble?.destroy();
+    super.destroy();
   }
 }

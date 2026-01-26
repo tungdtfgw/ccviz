@@ -7,13 +7,23 @@ import { FoodIndicator } from '../sprites/FoodIndicator';
 import { BarSign } from '../sprites/BarSign';
 import { Bartender } from '../sprites/Bartender';
 import { Waiter } from '../sprites/Waiter';
+import { Chef } from '../sprites/npc-chef-food-delivery-sprite';
 import { SpeechBubblePool } from '../sprites/SpeechBubble';
 import { TVDisplay } from '../sprites/TVDisplay';
 import type { BarEvent, SessionStartPayload, SubagentPayload, ContextPayload } from '@shared/events';
 import type { TeamKey } from '@shared/teams';
 import { TEAMS } from '@shared/teams';
 
+interface TableDisplay {
+  graphics: Phaser.GameObjects.Graphics;
+  logo: Phaser.GameObjects.Sprite | null;
+  teamKey: string | null;
+}
+
 export class BarScene extends Phaser.Scene {
+  // Track table displays (graphics + logo)
+  private tableDisplays: TableDisplay[] = [];
+
   // 8 tables for customers (4 on each side)
   public positions = {
     barCounter: { x: 400, y: 560 },
@@ -72,8 +82,12 @@ export class BarScene extends Phaser.Scene {
   private foodIndicator!: FoodIndicator;
   private bartender!: Bartender;
   private waiter!: Waiter;
+  private chef!: Chef;
   private bubblePool!: SpeechBubblePool;
   private tvDisplay!: TVDisplay;
+
+  // Track MCP state for customer food
+  private currentMcpSession: string | null = null;
 
   constructor() {
     super({ key: 'BarScene' });
@@ -96,6 +110,7 @@ export class BarScene extends Phaser.Scene {
       this.positions.kitchen.x,
       this.positions.kitchen.y
     );
+    this.chef = new Chef(this, this.positions.kitchen.x, this.positions.kitchen.y);
 
     // Session customer manager (replaces MainAgent for multi-session)
     this.customerManager = new SessionCustomerManager(
@@ -177,14 +192,14 @@ export class BarScene extends Phaser.Scene {
     for (let i = 0; i < 5; i++) {
       this.add.sprite(380 + i * 18, 530, 'bottle')
         .setOrigin(0.5, 1)
-        .setDepth(120);
+        .setDepth(540);  // Above counter (530)
     }
 
     // Beer glasses (yellow) - near bartender, on counter surface
     for (let i = 0; i < 4; i++) {
       this.add.sprite(560 + i * 18, 530, 'beer-glass')
         .setOrigin(0.5, 1)
-        .setDepth(120);
+        .setDepth(540);  // Above counter (530)
     }
 
     // Speaker system below TV
@@ -200,7 +215,7 @@ export class BarScene extends Phaser.Scene {
       fontStyle: 'bold'
     });
     barNameText.setOrigin(0.5, 0.5);
-    barNameText.setDepth(130);
+    barNameText.setDepth(540);  // Above counter (530)
   }
 
   private createTV() {
@@ -214,8 +229,6 @@ export class BarScene extends Phaser.Scene {
   }
 
   private createFurniture() {
-    const g = this.add.graphics();
-
     // Kitchen door (replaces fireplace)
     this.add.sprite(
       this.positions.kitchenDoor.x,
@@ -225,34 +238,36 @@ export class BarScene extends Phaser.Scene {
       .setOrigin(0.5, 0.5)
       .setDepth(50);
 
-    // Draw 8 tables - warm wood tones
-    this.positions.tables.forEach((pos) => {
-      // Table surface - polished oak
-      g.fillStyle(0x8B4513);
-      g.fillRect(pos.x - 40, pos.y - 20, 80, 40);
+    // Draw 8 tables - each with own graphics for proper depth sorting
+    // Store in tableDisplays for team color/logo updates
+    this.tableDisplays = this.positions.tables.map((pos) => {
+      const tableG = this.add.graphics();
+      this.drawTable(tableG, pos.x, pos.y); // Default table appearance
+      tableG.setDepth(pos.y);
 
-      // Table edge - darker mahogany
-      g.fillStyle(0x6B3A1F);
-      g.fillRect(pos.x - 40, pos.y + 16, 80, 6);
-
-      // Chairs (left and right) - warm saddle brown
-      g.fillStyle(0x8B5A2B);
-      g.fillRect(pos.x - 55, pos.y - 10, 14, 24);
-      g.fillRect(pos.x + 41, pos.y - 10, 14, 24);
+      return {
+        graphics: tableG,
+        logo: null,
+        teamKey: null
+      };
     });
 
     // Bar counter at bottom - dark mahogany
-    g.fillStyle(0x6B3A1F);
-    g.fillRect(100, 530, 600, 60);
-    g.fillStyle(0x8B4513); // Sienna/polished mahogany top
-    g.fillRect(100, 520, 600, 16);
+    const counterG = this.add.graphics();
+    counterG.fillStyle(0x6B3A1F);
+    counterG.fillRect(100, 530, 600, 60);
+    counterG.fillStyle(0x8B4513); // Sienna/polished mahogany top
+    counterG.fillRect(100, 520, 600, 16);
+    counterG.setDepth(530);
 
     // Beer taps on counter
-    g.fillStyle(0x795548);
-    g.fillRect(this.positions.beerTower.x - 20, 490, 40, 40);
-    g.fillStyle(0xFFC107);
-    g.fillRect(this.positions.beerTower.x - 10, 495, 8, 20);
-    g.fillRect(this.positions.beerTower.x + 2, 495, 8, 20);
+    const tapsG = this.add.graphics();
+    tapsG.fillStyle(0x795548);
+    tapsG.fillRect(this.positions.beerTower.x - 20, 490, 40, 40);
+    tapsG.fillStyle(0xFFC107);
+    tapsG.fillRect(this.positions.beerTower.x - 10, 495, 8, 20);
+    tapsG.fillRect(this.positions.beerTower.x + 2, 495, 8, 20);
+    tapsG.setDepth(490);
 
 
     // Entrance door
@@ -270,6 +285,73 @@ export class BarScene extends Phaser.Scene {
 
     // Sign
     this.barSign = new BarSign(this, this.positions.entrance.x, this.positions.entrance.y - 100);
+  }
+
+  // Draw table with optional team edge color
+  private drawTable(g: Phaser.GameObjects.Graphics, x: number, y: number, teamColor?: number) {
+    g.clear();
+
+    // Table surface - polished oak
+    g.fillStyle(0x8B4513);
+    g.fillRect(x - 40, y - 20, 80, 40);
+
+    // Table edge - team color or default mahogany
+    const edgeColor = teamColor ?? 0x6B3A1F;
+    g.fillStyle(edgeColor);
+    g.fillRect(x - 40, y + 16, 80, 6);
+
+    // Chairs (left and right) - warm saddle brown
+    g.fillStyle(0x8B5A2B);
+    g.fillRect(x - 55, y - 10, 14, 24);
+    g.fillRect(x + 41, y - 10, 14, 24);
+  }
+
+  // Set table to team colors with logo
+  private setTableTeam(tableIndex: number, teamKey: TeamKey) {
+    if (tableIndex < 0 || tableIndex >= this.tableDisplays.length) return;
+
+    const display = this.tableDisplays[tableIndex];
+    const team = TEAMS.find(t => t.key === teamKey);
+    if (!team) return;
+
+    const pos = this.positions.tables[tableIndex];
+
+    // Convert hex color string to number
+    const teamColorNum = Phaser.Display.Color.HexStringToColor(team.primary).color;
+
+    // Redraw table with team edge color
+    this.drawTable(display.graphics, pos.x, pos.y, teamColorNum);
+
+    // Remove old logo if exists
+    if (display.logo) {
+      display.logo.destroy();
+      display.logo = null;
+    }
+
+    // Add team logo on table surface
+    const logoKey = `logo-${teamKey}`;
+    display.logo = this.add.sprite(pos.x, pos.y - 5, logoKey);
+    display.logo.setOrigin(0.5, 0.5);
+    display.logo.setDepth(pos.y + 1); // Above table surface
+    display.teamKey = teamKey;
+  }
+
+  // Reset table to default appearance
+  private resetTable(tableIndex: number) {
+    if (tableIndex < 0 || tableIndex >= this.tableDisplays.length) return;
+
+    const display = this.tableDisplays[tableIndex];
+    const pos = this.positions.tables[tableIndex];
+
+    // Redraw table with default color
+    this.drawTable(display.graphics, pos.x, pos.y);
+
+    // Remove logo
+    if (display.logo) {
+      display.logo.destroy();
+      display.logo = null;
+    }
+    display.teamKey = null;
   }
 
   private setupSocketListeners() {
@@ -372,28 +454,50 @@ export class BarScene extends Phaser.Scene {
       console.log('[BarScene] Bar closed');
     });
 
-    // Beer delivery when session opens
+    // Beer delivery when session opens - bartender greets, customer responds
     barState.on('session:open', (session: SessionState) => {
       console.log(`[BarScene] Session opened: ${session.sessionId} (${session.teamKey})`);
 
-      // Wait for customer to reach table (1500ms walk + 200ms buffer) before starting beer delivery
+      // Get team color for speech
+      const team = TEAMS.find(t => t.key === session.teamKey);
+      const teamColor = team?.primary ?? '#D2691E';
+
+      // Set table to team colors with logo
+      this.setTableTeam(session.tableIndex, session.teamKey);
+
+      // Bartender greets the new customer
+      this.bartender.speak('Hi, viber!', teamColor);
+
+      // Wait for customer to reach table, then customer greets back bartender
       const table = this.positions.tables[session.tableIndex];
       if (table) {
         this.time.delayedCall(1700, () => {
-          this.bartender.prepareBeer(() => {
-            this.waiter.queueDelivery(
-              table.x,
-              table.y,
-              session.sessionId,
-              session.contextPercent
-            );
+          // Customer responds to bartender: "Wsup CC?"
+          const customer = this.customerManager.getCustomer(session.sessionId);
+          customer?.speak('Wsup CC?');
+
+          // After customer greeting, bartender prepares beer
+          this.time.delayedCall(2500, () => {
+            this.bartender.prepareBeer(() => {
+              this.waiter.queueDelivery(
+                table.x,
+                table.y,
+                session.sessionId,
+                session.contextPercent
+              );
+            });
           });
         });
       }
     });
 
-    barState.on('session:close', ({ sessionId }) => {
+    barState.on('session:close', ({ sessionId, tableIndex }: { sessionId: string; tableIndex: number }) => {
       console.log(`[BarScene] Session closed: ${sessionId}`);
+
+      // Reset table to default appearance
+      if (tableIndex !== undefined && tableIndex >= 0) {
+        this.resetTable(tableIndex);
+      }
     });
 
     // Context reset (clear/compact) - waiter brings fresh beer tower
@@ -444,7 +548,7 @@ export class BarScene extends Phaser.Scene {
       }
     });
 
-    // Skill usage triggers food delivery
+    // Skill usage triggers food delivery via waiter
     barState.on('skill:use', (skillName: string) => {
       console.log(`[BarScene] Skill used: ${skillName}`);
 
@@ -474,8 +578,65 @@ export class BarScene extends Phaser.Scene {
       }
     });
 
+    // MCP tool call - customer orders, bartender responds, chef brings food
+    barState.on('mcp:start', (serverName: string) => {
+      console.log(`[BarScene] MCP call started: ${serverName}`);
+
+      // Find first session for MCP (use first customer)
+      const sessions = barState.getAllSessions();
+      if (sessions.length === 0) return;
+
+      const session = sessions[0];
+      this.currentMcpSession = session.sessionId;
+      const customer = this.customerManager.getCustomer(session.sessionId);
+      if (!customer) return;
+
+      const team = TEAMS.find(t => t.key === session.teamKey);
+      const table = this.positions.tables[session.tableIndex];
+      if (!table) return;
+
+      // 1. Customer shouts order: "One [mcp-name] please!"
+      customer.speak(`One ${serverName} please!`);
+
+      // 2. After short delay, bartender responds: "One [mcp-name] for [team-name]!"
+      this.time.delayedCall(800, () => {
+        this.bartender.speak(`One ${serverName} for ${team?.name}!`, team?.primary);
+      });
+
+      // 3. Chef brings food from kitchen
+      this.time.delayedCall(1200, () => {
+        this.chef.queueFoodDelivery(table.x, table.y, session.sessionId, serverName, () => {
+          // Food delivered - add to customer's table
+          const foodType = this.getRandomFoodType();
+          customer.addFood(foodType);
+        });
+      });
+    });
+
+    // MCP tool call ends - clear all food if no more MCP calls pending
+    barState.on('mcp:end', () => {
+      console.log('[BarScene] MCP call ended');
+
+      // Clear food from customer when MCP flow completes
+      if (this.currentMcpSession) {
+        const customer = this.customerManager.getCustomer(this.currentMcpSession);
+        if (customer) {
+          // Delay clearing to allow eating animation to finish
+          this.time.delayedCall(1500, () => {
+            customer.clearAllFoods();
+          });
+        }
+        this.currentMcpSession = null;
+      }
+    });
+
     // Listen for waiter beer delivery - show beer tower on customer table
     this.waiter.onDelivery('beer:delivered', (sessionId: string, contextPercent: number) => {
+      // Waiter speaks when delivering beer
+      const teamKey = this.customerManager.getCustomerTeam(sessionId);
+      const team = TEAMS.find(t => t.key === teamKey);
+      this.waiter.speak('Enjoy vibing!', team?.primary);
+
       // Small delay to ensure customer sprite exists (walking to seat)
       this.time.delayedCall(100, () => {
         const customer = this.customerManager.getCustomer(sessionId);
@@ -488,6 +649,11 @@ export class BarScene extends Phaser.Scene {
             customer.updateBeerLevel(realPercent);
           }
           // If 0, beer shows full - will update when context:update arrives
+
+          // Customer greets waiter after receiving beer: "My man, CK!"
+          this.time.delayedCall(2500, () => {
+            customer.speak('My man, CK!');
+          });
         }
       });
     });
@@ -508,5 +674,11 @@ export class BarScene extends Phaser.Scene {
 
   update() {
     this.barSign.update();
+  }
+
+  // Get random food type for MCP delivery
+  private getRandomFoodType(): string {
+    const foodTypes = ['pizza', 'burger', 'steak', 'sushi', 'sandwich', 'salad', 'cake'];
+    return foodTypes[Math.floor(Math.random() * foodTypes.length)];
   }
 }
