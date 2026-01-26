@@ -22,9 +22,9 @@
 
 ## About
 
-**ccviz** biến các phiên code AI nhàm chán thành hình ảnh trực quan sinh động - mỗi session Claude Code trở thành một vị khách tại quán bar thể thao, với đội bóng riêng, tháp bia thể hiện context usage, và các subagent xuất hiện như những người bạn đồng hành.
+**ccviz** transforms boring AI coding sessions into vivid visuals - each Claude Code session becomes a customer at a sports bar, with their own football team, beer towers showing context usage, and subagents appearing as companions.
 
-> 🎨 **100% Vibe Coded** với [Claude Code](https://claude.ai/code) và bộ skill [Claude Kit](https://claudekit.cc/?ref=KPLMI7XB) - không một dòng code nào được viết tay! Ghé thăm [claudekit.cc](https://claudekit.cc/?ref=KPLMI7XB) để khám phá và nhận ưu đãi giảm giá.
+> 🎨 **100% Vibe Coded** with [Claude Code](https://claude.ai/code) and [Claude Kit](https://claudekit.cc/?ref=KPLMI7XB) skills - not a single line written by hand! Check out [claudekit.cc](https://claudekit.cc/?ref=KPLMI7XB) for a discount.
 
 ---
 
