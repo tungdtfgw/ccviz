@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@shared/teams": ["src/shared/football-team-configs-and-sprite-mappings.ts"],
+      "@shared/events": ["src/shared/claude-code-event-stream-types-and-payloads.ts"],
+      "@shared/state": ["src/shared/server-session-and-agent-state-interfaces.ts"],
+      "@shared/*": ["src/shared/*"],
+      "@shared": ["src/shared/robotruncc-shared-types-teams-events-state-barrel.ts"]
+    },
+    "types": ["bun-types"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "vite.config.ts"
+  ]
+}

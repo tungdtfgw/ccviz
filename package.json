@@ -1,0 +1,27 @@
+{
+  "name": "robotruncc",
+  "version": "0.1.0",
+  "description": "2D pixel art visualization of Claude Code activities as a sports bar",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"bun run dev:server\" \"bun run dev:client\"",
+    "dev:server": "bun --watch src/server/index.ts",
+    "dev:client": "vite",
+    "build": "vite build",
+    "build:server": "bun build src/server/index.ts --outdir dist/server --target bun",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "eventemitter3": "^5.0.1",
+    "phaser": "^3.80.1",
+    "socket.io": "^4.7.4",
+    "socket.io-client": "^4.7.4"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.0",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.2",
+    "vite": "^5.2.0"
+  }
+}
