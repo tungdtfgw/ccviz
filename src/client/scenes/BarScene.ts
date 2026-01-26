@@ -3,7 +3,6 @@ import { socketClient } from '../socket-client';
 import { barState, type SessionState, type Agent } from '../state/BarState';
 import { SessionCustomerManager } from '../sprites/SessionCustomerManager';
 import { SubAgentManager } from '../sprites/SubAgentManager';
-import { PhoneBooth } from '../sprites/PhoneBooth';
 import { FoodIndicator } from '../sprites/FoodIndicator';
 import { BarSign } from '../sprites/BarSign';
 import { Bartender } from '../sprites/Bartender';
@@ -21,7 +20,6 @@ export class BarScene extends Phaser.Scene {
     bartender: { x: 520, y: 560 },
     waiterHome: { x: 350, y: 500 },
     waiterCounter: { x: 450, y: 520 },
-    phoneBooth: { x: 60, y: 280 },
     entrance: { x: 750, y: 450 },
     beerTower: { x: 480, y: 540 },
     // 8 tables in 2 rows
@@ -39,7 +37,7 @@ export class BarScene extends Phaser.Scene {
     ],
     // Kitchen door replaces fireplace
     kitchen: { x: 700, y: 240 },
-    kitchenDoor: { x: 700, y: 180 },
+    kitchenDoor: { x: 700, y: 220 },
     // Sub-agent waiting spots (near each table)
     subAgentSpots: [
       { x: 150, y: 350 },
@@ -53,18 +51,17 @@ export class BarScene extends Phaser.Scene {
     ],
     // TV and decorations
     tv: { x: 400, y: 120 },
-    trophyShelf: { x: 150, y: 100 },
-    scarves: [
-      { x: 80, y: 150 },
-      { x: 580, y: 150 }
-    ],
-    pennants: [
-      { x: 250, y: 80 },
-      { x: 550, y: 80 }
-    ],
+    // 3 photos at varied heights for visual interest
     photos: [
-      { x: 320, y: 180 },
-      { x: 480, y: 180 }
+      { x: 120, y: 100 },   // Left high
+      { x: 220, y: 130 },   // Left lower
+      { x: 580, y: 115 }    // Right mid
+    ],
+    // Trophies - bottom aligned with speaker bottom (y=210)
+    trophies: [
+      { x: 260, y: 210 },
+      { x: 310, y: 210 },
+      { x: 540, y: 210 }
     ],
     menuBoard: { x: 200, y: 520 }
   };
@@ -72,7 +69,6 @@ export class BarScene extends Phaser.Scene {
   private barSign!: BarSign;
   private customerManager!: SessionCustomerManager;
   private subAgentManager!: SubAgentManager;
-  private phoneBooth!: PhoneBooth;
   private foodIndicator!: FoodIndicator;
   private bartender!: Bartender;
   private waiter!: Waiter;
@@ -88,9 +84,6 @@ export class BarScene extends Phaser.Scene {
     this.createDecorations();
     this.createFurniture();
     this.createTV();
-
-    // Create game objects
-    this.phoneBooth = new PhoneBooth(this, this.positions.phoneBooth.x, this.positions.phoneBooth.y);
 
     // NPCs
     this.bartender = new Bartender(this, this.positions.bartender.x, this.positions.bartender.y);
@@ -132,77 +125,82 @@ export class BarScene extends Phaser.Scene {
   }
 
   private createBackground() {
-    // Floor (wooden planks style)
+    // Floor (wooden planks style) - warm maple/oak
     const floor = this.add.graphics();
-    floor.fillStyle(0xA1887F);
+    floor.fillStyle(0xC4956A); // Upper floor - warm maple
     floor.fillRect(0, 520, 800, 80);
 
-    // Lower floor area
-    floor.fillStyle(0x8D6E63);
+    // Lower floor area - medium amber wood
+    floor.fillStyle(0xB08050);
     floor.fillRect(0, 260, 800, 260);
 
-    // Floor boards lines
-    floor.lineStyle(1, 0x795548, 0.3);
+    // Floor boards lines - dark goldenrod shadows
+    floor.lineStyle(1, 0x8B6914, 0.4);
     for (let i = 0; i < 10; i++) {
       floor.lineBetween(0, 280 + i * 30, 800, 280 + i * 30);
     }
 
-    // Walls
+    // Walls - warm honey-oak tone
     const walls = this.add.graphics();
-    walls.fillStyle(0x5D4037);
+    walls.fillStyle(0xD4A574);
     walls.fillRect(0, 0, 800, 260);
 
-    // Wall panels
-    walls.fillStyle(0x4E342E);
+    // Wall panels - rich saddle brown wainscoting
+    walls.fillStyle(0x8B5A2B);
     walls.fillRect(0, 200, 800, 60);
 
-    // Wall accent stripes
-    walls.fillStyle(0x8D6E63);
+    // Wall accent stripes - golden brass
+    walls.fillStyle(0xC9A86C);
     walls.fillRect(0, 100, 800, 6);
     walls.fillRect(0, 200, 800, 6);
   }
 
   private createDecorations() {
-    // Trophy shelf
-    this.add.sprite(this.positions.trophyShelf.x, this.positions.trophyShelf.y, 'trophy-shelf')
-      .setOrigin(0.5, 0.5)
-      .setDepth(10);
-
-    // Scarves
-    this.positions.scarves.forEach((pos, i) => {
-      const scarf = this.add.sprite(pos.x, pos.y, 'scarf')
-        .setOrigin(0.5, 0)
-        .setDepth(10);
-      // Vary colors for different teams
-      if (i === 1) scarf.setTint(0x004D98); // Blue
-    });
-
-    // Pennants
-    this.positions.pennants.forEach((pos, i) => {
-      const pennant = this.add.sprite(pos.x, pos.y, 'pennant')
-        .setOrigin(0.5, 0)
-        .setDepth(10);
-      if (i === 1) pennant.setTint(0xDA291C); // Red
-    });
-
-    // Photo frames
-    this.positions.photos.forEach(pos => {
-      this.add.sprite(pos.x, pos.y, 'photo-frame')
+    // Photo frames - 3 different players at varied heights
+    const photoTextures = ['photo-frame-1', 'photo-frame-2', 'photo-frame-3'];
+    this.positions.photos.forEach((pos, i) => {
+      this.add.sprite(pos.x, pos.y, photoTextures[i])
         .setOrigin(0.5, 0.5)
+        .setScale(1.33)
         .setDepth(10);
     });
 
-    // Menu board near counter
-    this.add.sprite(this.positions.menuBoard.x, this.positions.menuBoard.y, 'menu-board')
-      .setOrigin(0.5, 1)
-      .setDepth(90);
+    // Individual trophies at speaker level - 2 left, 1 right
+    const trophyTypes = ['trophy-worldcup', 'trophy-champions', 'trophy-premier'];
+    this.positions.trophies.forEach((pos, i) => {
+      this.add.sprite(pos.x, pos.y, trophyTypes[i])
+        .setOrigin(0.5, 1)
+        .setDepth(10);
+    });
 
-    // Counter decorations (beer glasses)
+    // Bottles (green) - left of beer taps on counter surface
     for (let i = 0; i < 5; i++) {
-      this.add.sprite(150 + i * 30, 515, 'beer-glass')
+      this.add.sprite(380 + i * 18, 530, 'bottle')
         .setOrigin(0.5, 1)
         .setDepth(120);
     }
+
+    // Beer glasses (yellow) - near bartender, on counter surface
+    for (let i = 0; i < 4; i++) {
+      this.add.sprite(560 + i * 18, 530, 'beer-glass')
+        .setOrigin(0.5, 1)
+        .setDepth(120);
+    }
+
+    // Speaker system below TV
+    this.add.sprite(this.positions.tv.x, this.positions.tv.y + 60, 'speaker-system')
+      .setOrigin(0.5, 0)
+      .setDepth(10);
+
+    // Bar name text "Claude Code Bar Pub" in center of counter
+    const barNameText = this.add.text(400, 555, 'Claude Code Bar Pub', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '16px',
+      color: '#FFD700',
+      fontStyle: 'bold'
+    });
+    barNameText.setOrigin(0.5, 0.5);
+    barNameText.setDepth(130);
   }
 
   private createTV() {
@@ -227,26 +225,26 @@ export class BarScene extends Phaser.Scene {
       .setOrigin(0.5, 0.5)
       .setDepth(50);
 
-    // Draw 8 tables
+    // Draw 8 tables - warm wood tones
     this.positions.tables.forEach((pos) => {
-      // Table surface
-      g.fillStyle(0x5D4037);
+      // Table surface - polished oak
+      g.fillStyle(0x8B4513);
       g.fillRect(pos.x - 40, pos.y - 20, 80, 40);
 
-      // Table edge
-      g.fillStyle(0x4E342E);
+      // Table edge - darker mahogany
+      g.fillStyle(0x6B3A1F);
       g.fillRect(pos.x - 40, pos.y + 16, 80, 6);
 
-      // Chairs (left and right)
-      g.fillStyle(0x8D6E63);
+      // Chairs (left and right) - warm saddle brown
+      g.fillStyle(0x8B5A2B);
       g.fillRect(pos.x - 55, pos.y - 10, 14, 24);
       g.fillRect(pos.x + 41, pos.y - 10, 14, 24);
     });
 
-    // Bar counter at bottom
-    g.fillStyle(0x3E2723);
+    // Bar counter at bottom - dark mahogany
+    g.fillStyle(0x6B3A1F);
     g.fillRect(100, 530, 600, 60);
-    g.fillStyle(0x5D4037);
+    g.fillStyle(0x8B4513); // Sienna/polished mahogany top
     g.fillRect(100, 520, 600, 16);
 
     // Beer taps on counter
@@ -256,10 +254,6 @@ export class BarScene extends Phaser.Scene {
     g.fillRect(this.positions.beerTower.x - 10, 495, 8, 20);
     g.fillRect(this.positions.beerTower.x + 2, 495, 8, 20);
 
-    // Phone booth (base graphic, sprite added separately)
-    this.add.sprite(this.positions.phoneBooth.x, this.positions.phoneBooth.y, 'phone-booth')
-      .setOrigin(0.5, 0.5)
-      .setDepth(100);
 
     // Entrance door
     const entrance = this.add.graphics();

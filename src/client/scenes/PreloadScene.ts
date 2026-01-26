@@ -28,19 +28,22 @@ export class PreloadScene extends Phaser.Scene {
 
     // Simple textures
     this.createSimpleTexture('beer-mug', 16, 20, this.drawBeerMug.bind(this));
-    this.createSimpleTexture('phone-booth', 64, 120, this.drawPhoneBooth.bind(this));
     this.createSimpleTexture('sign-open', 48, 24, this.drawOpenSign.bind(this));
     this.createSimpleTexture('sign-closed', 64, 24, this.drawClosedSign.bind(this));
     this.createSimpleTexture('sign-rate-limit', 80, 32, this.drawRateLimitSign.bind(this));
     this.createSimpleTexture('table', 80, 48, this.drawTable.bind(this));
     this.createSimpleTexture('kitchen-door', 80, 120, this.drawKitchenDoor.bind(this));
     this.createSimpleTexture('tv-frame', 180, 100, this.drawTVFrame.bind(this));
-    this.createSimpleTexture('trophy-shelf', 100, 60, this.drawTrophyShelf.bind(this));
-    this.createSimpleTexture('scarf', 20, 50, this.drawScarf.bind(this));
-    this.createSimpleTexture('pennant', 30, 40, this.drawPennant.bind(this));
-    this.createSimpleTexture('photo-frame', 40, 50, this.drawPhotoFrame.bind(this));
-    this.createSimpleTexture('menu-board', 60, 80, this.drawMenuBoard.bind(this));
+    this.createSimpleTexture('trophy-worldcup', 36, 50, this.drawTrophyWorldCup.bind(this));
+    this.createSimpleTexture('trophy-champions', 40, 50, this.drawTrophyChampions.bind(this));
+    this.createSimpleTexture('trophy-premier', 36, 50, this.drawTrophyPremier.bind(this));
+    this.createSimpleTexture('photo-frame-1', 40, 50, this.drawPhotoFrame1.bind(this));
+    this.createSimpleTexture('photo-frame-2', 40, 50, this.drawPhotoFrame2.bind(this));
+    this.createSimpleTexture('photo-frame-3', 40, 50, this.drawPhotoFrame3.bind(this));
     this.createSimpleTexture('beer-glass', 12, 20, this.drawBeerGlass.bind(this));
+    this.createSimpleTexture('bottle', 10, 28, this.drawBottle.bind(this));
+    this.createSimpleTexture('desk-phone', 32, 24, this.drawDeskPhone.bind(this));
+    this.createSimpleTexture('speaker-system', 120, 30, this.drawSpeakerSystem.bind(this));
   }
 
   // Create team spritesheet (48x48, 24 frames)
@@ -677,26 +680,6 @@ export class PreloadScene extends Phaser.Scene {
     ctx.fillRect(3, 4, 8, 3);
   }
 
-  private drawPhoneBooth(ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = '#5D4037';
-    ctx.fillRect(0, 0, 64, 120);
-    ctx.fillStyle = '#3e2723';
-    ctx.fillRect(8, 8, 48, 96);
-    ctx.fillStyle = '#81d4fa';
-    ctx.fillRect(12, 12, 40, 24);
-    ctx.fillRect(12, 40, 40, 24);
-    ctx.fillStyle = '#212121';
-    ctx.fillRect(24, 70, 16, 24);
-    ctx.fillStyle = '#424242';
-    ctx.fillRect(26, 68, 12, 4);
-    ctx.fillStyle = '#757575';
-    ctx.fillRect(27, 78, 10, 12);
-    ctx.fillStyle = '#ffcc00';
-    ctx.fillRect(48, 60, 4, 8);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(20, 108, 24, 8);
-  }
-
   private drawOpenSign(ctx: CanvasRenderingContext2D) {
     ctx.fillStyle = '#4CAF50';
     ctx.fillRect(0, 0, 48, 24);
@@ -819,84 +802,212 @@ export class PreloadScene extends Phaser.Scene {
     ctx.fillRect(170, 88, 4, 4);
   }
 
-  private drawTrophyShelf(ctx: CanvasRenderingContext2D) {
-    // Shelf
-    ctx.fillStyle = '#5D4037';
-    ctx.fillRect(0, 45, 100, 8);
-    ctx.fillRect(0, 53, 100, 7);
-
-    // Trophy 1 (gold cup)
+  // FIFA World Cup trophy - gold with globe and two figures
+  private drawTrophyWorldCup(ctx: CanvasRenderingContext2D) {
+    // Base pedestal
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(9, 44, 18, 6);
+    // Cup body - classic chalice shape
     ctx.fillStyle = '#FFD700';
-    ctx.fillRect(15, 25, 16, 20);
-    ctx.fillRect(19, 15, 8, 12);
-    ctx.fillRect(11, 20, 24, 6);
+    ctx.fillRect(13, 30, 10, 14);
+    // Wider top rim
+    ctx.fillRect(10, 26, 16, 6);
+    // Two figures holding globe
+    ctx.fillRect(8, 10, 4, 18);
+    ctx.fillRect(24, 10, 4, 18);
+    // Globe on top
+    ctx.fillStyle = '#FFB300';
+    ctx.beginPath();
+    ctx.arc(18, 10, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath();
+    ctx.arc(18, 10, 5, 0, Math.PI * 2);
+    ctx.fill();
+    // Globe latitude lines
+    ctx.strokeStyle = '#FFB300';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(18, 10, 3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 
-    // Trophy 2 (silver)
+  // UEFA Champions League trophy - silver "Big Ears"
+  private drawTrophyChampions(ctx: CanvasRenderingContext2D) {
+    // Base
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(10, 44, 20, 6);
+    // Stem
     ctx.fillStyle = '#C0C0C0';
-    ctx.fillRect(50, 30, 12, 15);
-    ctx.fillRect(46, 35, 20, 5);
-    ctx.fillRect(52, 22, 8, 10);
-
-    // Trophy 3 (bronze)
-    ctx.fillStyle = '#CD7F32';
-    ctx.fillRect(78, 32, 10, 13);
-    ctx.fillRect(75, 38, 16, 4);
-  }
-
-  private drawScarf(ctx: CanvasRenderingContext2D) {
-    // Scarf hanging on wall
-    ctx.fillStyle = '#DA291C';
-    ctx.fillRect(8, 0, 4, 50);
-    ctx.fillRect(0, 40, 20, 10);
-
-    // Stripes
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(8, 10, 4, 4);
-    ctx.fillRect(8, 20, 4, 4);
-    ctx.fillRect(8, 30, 4, 4);
-    ctx.fillRect(2, 42, 16, 2);
-    ctx.fillRect(2, 46, 16, 2);
-  }
-
-  private drawPennant(ctx: CanvasRenderingContext2D) {
-    // Triangle pennant
-    ctx.fillStyle = '#004D98';
-    ctx.beginPath();
-    ctx.moveTo(15, 0);
-    ctx.lineTo(0, 40);
-    ctx.lineTo(30, 40);
-    ctx.closePath();
-    ctx.fill();
-
-    // Stripe
-    ctx.fillStyle = '#A50044';
-    ctx.beginPath();
-    ctx.moveTo(15, 8);
-    ctx.lineTo(6, 30);
-    ctx.lineTo(24, 30);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  private drawPhotoFrame(ctx: CanvasRenderingContext2D) {
-    // Frame
-    ctx.fillStyle = '#5D4037';
-    ctx.fillRect(0, 0, 40, 50);
-
-    // Inner frame
-    ctx.fillStyle = '#3E2723';
-    ctx.fillRect(4, 4, 32, 42);
-
-    // Photo (grayscale)
+    ctx.fillRect(17, 36, 6, 10);
+    // Main cup body - bowl shape
+    ctx.fillRect(12, 22, 16, 16);
+    // Big ear handles - the iconic feature
+    ctx.fillRect(4, 14, 8, 26);
+    ctx.fillRect(28, 14, 8, 26);
+    // Top rim shiny
+    ctx.fillStyle = '#E8E8E8';
+    ctx.fillRect(10, 20, 20, 4);
+    // Inner cup dark
     ctx.fillStyle = '#9E9E9E';
-    ctx.fillRect(6, 6, 28, 38);
+    ctx.fillRect(14, 24, 12, 10);
+    // Shine highlight
+    ctx.fillStyle = '#F5F5F5';
+    ctx.fillRect(6, 18, 2, 8);
+    ctx.fillRect(32, 18, 2, 8);
+  }
 
-    // Silhouette (footballer)
-    ctx.fillStyle = '#616161';
-    ctx.fillRect(14, 12, 12, 20);
+  // Premier League trophy - gold with crown and lion
+  private drawTrophyPremier(ctx: CanvasRenderingContext2D) {
+    // Purple/blue base
+    ctx.fillStyle = '#38003c';
+    ctx.fillRect(8, 44, 20, 6);
+    // Gold stem
+    ctx.fillStyle = '#FFD700';
+    ctx.fillRect(15, 34, 6, 12);
+    // Main cup body
+    ctx.fillRect(10, 20, 16, 16);
+    // Handles
+    ctx.fillRect(4, 22, 8, 12);
+    ctx.fillRect(24, 22, 8, 12);
+    // Crown on top - 3 points
+    ctx.fillRect(10, 12, 16, 10);
+    ctx.fillRect(8, 6, 4, 8);
+    ctx.fillRect(16, 4, 4, 10);
+    ctx.fillRect(24, 6, 4, 8);
+    // Lion emblem hint
+    ctx.fillStyle = '#FFB300';
+    ctx.fillRect(14, 24, 8, 8);
+    // Crown jewels
+    ctx.fillStyle = '#E91E63';
+    ctx.fillRect(9, 8, 2, 2);
+    ctx.fillRect(17, 6, 2, 2);
+    ctx.fillRect(25, 8, 2, 2);
+  }
+
+  // Photo 1: Red jersey - kicking pose
+  private drawPhotoFrame1(ctx: CanvasRenderingContext2D) {
+    this.drawPhotoFrameBase(ctx);
+
+    // Footballer kicking ball - RED jersey (Man United style)
+    ctx.fillStyle = '#ffdbac';
     ctx.beginPath();
-    ctx.arc(20, 10, 6, 0, Math.PI * 2);
+    ctx.arc(18, 12, 4, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.fillStyle = '#4a3728';
+    ctx.fillRect(14, 8, 8, 3);
+
+    // Red jersey
+    ctx.fillStyle = '#DA291C';
+    ctx.fillRect(14, 16, 8, 10);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(14, 26, 8, 5);
+
+    // Kicking leg extended right
+    ctx.fillStyle = '#ffdbac';
+    ctx.fillRect(22, 28, 8, 3);
+    ctx.fillRect(14, 31, 4, 6);
+
+    ctx.fillStyle = '#DA291C';
+    ctx.fillRect(14, 35, 4, 3);
+    ctx.fillRect(26, 29, 4, 2);
+
+    // Ball
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(32, 30, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(30, 29, 2, 2);
+  }
+
+  // Photo 2: Blue jersey - heading pose
+  private drawPhotoFrame2(ctx: CanvasRenderingContext2D) {
+    this.drawPhotoFrameBase(ctx);
+
+    // Footballer heading ball - BLUE jersey (Chelsea style)
+    ctx.fillStyle = '#ffdbac';
+    ctx.beginPath();
+    ctx.arc(20, 14, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#2c1810';
+    ctx.fillRect(16, 10, 8, 3);
+
+    // Blue jersey
+    ctx.fillStyle = '#034694';
+    ctx.fillRect(16, 18, 8, 10);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(16, 28, 8, 5);
+
+    // Jumping legs together
+    ctx.fillStyle = '#ffdbac';
+    ctx.fillRect(16, 33, 4, 6);
+    ctx.fillRect(20, 33, 4, 6);
+
+    ctx.fillStyle = '#034694';
+    ctx.fillRect(16, 37, 4, 3);
+    ctx.fillRect(20, 37, 4, 3);
+
+    // Ball above head
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(20, 6, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(18, 5, 2, 2);
+  }
+
+  // Photo 3: Yellow jersey - dribbling pose
+  private drawPhotoFrame3(ctx: CanvasRenderingContext2D) {
+    this.drawPhotoFrameBase(ctx);
+
+    // Footballer dribbling - YELLOW jersey (Brazil style)
+    ctx.fillStyle = '#8d5524';
+    ctx.beginPath();
+    ctx.arc(16, 14, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(12, 10, 8, 4);
+
+    // Yellow jersey
+    ctx.fillStyle = '#FFEB3B';
+    ctx.fillRect(12, 18, 8, 10);
+
+    // Blue shorts (Brazil)
+    ctx.fillStyle = '#1565C0';
+    ctx.fillRect(12, 28, 8, 5);
+
+    // Running legs spread
+    ctx.fillStyle = '#8d5524';
+    ctx.fillRect(8, 32, 4, 7);
+    ctx.fillRect(18, 30, 4, 7);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(8, 37, 4, 3);
+    ctx.fillRect(18, 35, 4, 3);
+
+    // Ball at feet
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(26, 38, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(24, 37, 2, 2);
+  }
+
+  // Shared photo frame base
+  private drawPhotoFrameBase(ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, 40, 50);
+    ctx.fillStyle = '#E0E0E0';
+    ctx.fillRect(3, 3, 34, 44);
+    ctx.fillStyle = '#4CAF50';
+    ctx.fillRect(5, 5, 30, 40);
   }
 
   private drawMenuBoard(ctx: CanvasRenderingContext2D) {
@@ -928,6 +1039,116 @@ export class PreloadScene extends Phaser.Scene {
     ctx.fillRect(3, 6, 6, 11);
     ctx.fillStyle = '#FFFDE7';
     ctx.fillRect(3, 4, 6, 3);
+  }
+
+  private drawBottle(ctx: CanvasRenderingContext2D) {
+    // Bottle neck
+    ctx.fillStyle = '#2E7D32';
+    ctx.fillRect(3, 0, 4, 8);
+    // Bottle body
+    ctx.fillStyle = '#388E3C';
+    ctx.fillRect(1, 8, 8, 18);
+    // Label
+    ctx.fillStyle = '#FFECB3';
+    ctx.fillRect(2, 14, 6, 6);
+    // Highlight
+    ctx.fillStyle = '#4CAF50';
+    ctx.fillRect(2, 9, 2, 16);
+  }
+
+  private drawDeskPhone(ctx: CanvasRenderingContext2D) {
+    // Vintage rotary desk phone
+    // Base
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(4, 14, 24, 10);
+
+    // Rotary dial area
+    ctx.fillStyle = '#333333';
+    ctx.beginPath();
+    ctx.arc(16, 18, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Dial holes (gold/brass)
+    ctx.fillStyle = '#C9A86C';
+    ctx.beginPath();
+    ctx.arc(16, 18, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Handset cradle
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(2, 10, 28, 6);
+
+    // Handset (the receiver)
+    ctx.fillStyle = '#212121';
+    // Left ear piece
+    ctx.fillRect(0, 2, 8, 10);
+    // Handle bar
+    ctx.fillRect(6, 4, 20, 4);
+    // Right ear piece (mouthpiece)
+    ctx.fillRect(24, 2, 8, 10);
+
+    // Highlights
+    ctx.fillStyle = '#424242';
+    ctx.fillRect(2, 4, 4, 6);
+    ctx.fillRect(26, 4, 4, 6);
+
+    // Cord hint
+    ctx.fillStyle = '#333333';
+    ctx.fillRect(14, 22, 4, 2);
+  }
+
+  private drawSpeakerSystem(ctx: CanvasRenderingContext2D) {
+    // Sound bar / speaker system below TV
+
+    // Main speaker bar
+    ctx.fillStyle = '#212121';
+    ctx.fillRect(10, 5, 100, 20);
+
+    // Speaker grille pattern
+    ctx.fillStyle = '#333333';
+    ctx.fillRect(15, 8, 90, 14);
+
+    // Speaker cones (left, center, right)
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath();
+    ctx.arc(30, 15, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(60, 15, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(90, 15, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Speaker cone centers
+    ctx.fillStyle = '#424242';
+    ctx.beginPath();
+    ctx.arc(30, 15, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(60, 15, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(90, 15, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // LED indicator
+    ctx.fillStyle = '#4CAF50';
+    ctx.fillRect(112, 12, 3, 6);
+  }
+
+  private drawCoaster(ctx: CanvasRenderingContext2D) {
+    // Cork coaster
+    ctx.fillStyle = '#D7CCC8';
+    ctx.fillRect(0, 0, 20, 8);
+    ctx.fillStyle = '#A1887F';
+    ctx.fillRect(2, 2, 16, 4);
+    // Ring mark
+    ctx.strokeStyle = '#BCAAA4';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(10, 4, 5, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   create() {

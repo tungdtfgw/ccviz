@@ -49,24 +49,19 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
     this.sprite = scene.add.sprite(0, 0, spriteKey);
     this.sprite.setOrigin(0.5, 1);
 
-    // Name tag (short session ID + team name)
+    // Name tag (short session ID) - same font as context label
     const shortId = sessionId.slice(-6);
     this.nameTag = scene.add.text(0, -58, shortId, {
-      fontSize: '8px',
+      fontSize: '10px',
       color: '#ffffff',
+      fontFamily: 'monospace',
       backgroundColor: team.primary,
       padding: { x: 3, y: 1 }
     });
     this.nameTag.setOrigin(0.5, 0);
 
-    // Team badge (colored square above name)
+    // Team badge - hidden (not used anymore)
     this.teamBadge = scene.add.graphics();
-    const primaryColor = Phaser.Display.Color.HexStringToColor(team.primary).color;
-    const secondaryColor = Phaser.Display.Color.HexStringToColor(team.secondary).color;
-    this.teamBadge.fillStyle(secondaryColor, 1);
-    this.teamBadge.fillRect(-5, -70, 10, 10);
-    this.teamBadge.lineStyle(1, primaryColor);
-    this.teamBadge.strokeRect(-5, -70, 10, 10);
 
     // Beer tower (context indicator) - placed on table, HIDDEN until waiter delivers
     this.beerTower = scene.add.sprite(30, -10, 'beer-tower');
