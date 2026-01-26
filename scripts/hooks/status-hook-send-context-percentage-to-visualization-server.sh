@@ -11,9 +11,9 @@ SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
 USED_PERCENT=$(echo "$INPUT" | jq -r '.context_window.used_percentage // 0' | awk '{printf "%.0f", $1}')
 TOTAL_TOKENS=$(echo "$INPUT" | jq -r '.context_window.total_input_tokens // 0')
 
-# Fallback values
+# Skip if no session ID (can't attribute context to a session)
 if [ -z "$SESSION_ID" ]; then
-  SESSION_ID="session-main"
+  exit 0
 fi
 
 # Only send if we have valid context data

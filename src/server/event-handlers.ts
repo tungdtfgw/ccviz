@@ -44,7 +44,14 @@ export function handleEvent(event: BarEvent, io: SocketServer): void {
 
     case 'subagent:stop': {
       const p = payload as SubagentPayload;
-      stateManager.removeAgent(p.agentId);
+      if (!p.agentId) {
+        console.warn('[EventHandler] subagent:stop without agentId');
+        break;
+      }
+      const removed = stateManager.removeAgent(p.agentId);
+      if (!removed) {
+        console.warn(`[EventHandler] Agent ${p.agentId} not found in state`);
+      }
       io.emit('subagent:stop', event);
       break;
     }

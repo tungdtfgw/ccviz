@@ -1,0 +1,21 @@
+{
+  "version": "0.1.0",
+  "installedAt": "2026-01-26T19:50:54.030Z",
+  "isGlobal": false,
+  "packageRoot": "/Users/tungdt/My Projects/throwable/robotruncc",
+  "hooks": [
+    "ccviz-send-session-lifecycle-events-to-visualization-server.sh",
+    "hook-subagent-spawn-and-stop-events-to-visualization-http-server.sh",
+    "pre-tool-use-hook-send-mcp-tool-events-to-visualization-server.sh",
+    "post-tool-use-hook-send-mcp-tool-end-events-to-visualization-server.sh",
+    "status-hook-send-context-percentage-to-visualization-server.sh"
+  ],
+  "hookEvents": [
+    "SessionStart",
+    "SessionEnd",
+    "SubagentStart",
+    "SubagentStop",
+    "PreToolUse",
+    "PostToolUse"
+  ]
+}

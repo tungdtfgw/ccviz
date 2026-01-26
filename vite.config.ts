@@ -9,7 +9,7 @@ export default defineConfig({
       '@shared/teams': resolve(__dirname, 'src/shared/football-team-configs-and-sprite-mappings.ts'),
       '@shared/events': resolve(__dirname, 'src/shared/claude-code-event-stream-types-and-payloads.ts'),
       '@shared/state': resolve(__dirname, 'src/shared/server-session-and-agent-state-interfaces.ts'),
-      '@shared': resolve(__dirname, 'src/shared/robotruncc-shared-types-teams-events-state-barrel.ts')
+      '@shared': resolve(__dirname, 'src/shared/ccviz-shared-types-teams-events-state-barrel.ts')
     }
   },
   server: {

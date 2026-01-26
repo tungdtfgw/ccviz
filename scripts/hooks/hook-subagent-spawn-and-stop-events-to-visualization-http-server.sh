@@ -12,12 +12,13 @@ HOOK_EVENT=$(echo "$INPUT" | jq -r '.hook_event_name // empty')
 AGENT_ID=$(echo "$INPUT" | jq -r '.agent_id // empty')
 AGENT_TYPE=$(echo "$INPUT" | jq -r '.agent_type // "unknown"')
 
-# Fallback values
+# Skip if no session ID
 if [ -z "$SESSION_ID" ]; then
-  SESSION_ID="session-main"
+  exit 0
 fi
+# Skip if no agent ID (required for tracking)
 if [ -z "$AGENT_ID" ]; then
-  AGENT_ID="agent-$$"
+  exit 0
 fi
 
 send_event() {

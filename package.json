@@ -1,9 +1,14 @@
 {
-  "name": "robotruncc",
+  "name": "ccviz",
   "version": "0.1.0",
   "description": "2D pixel art visualization of Claude Code activities as a sports bar",
   "type": "module",
+  "bin": {
+    "ccviz": "./scripts/cli.cjs"
+  },
   "scripts": {
+    "install-hooks": "node scripts/install.cjs",
+    "uninstall-hooks": "node scripts/uninstall.cjs",
     "dev": "concurrently \"bun run dev:server\" \"bun run dev:client\"",
     "dev:server": "bun --watch src/server/index.ts",
     "dev:client": "vite",

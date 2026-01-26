@@ -77,8 +77,12 @@ export class SubAgentManager {
   }
 
   removeAgent(agentId: string) {
+    console.log(`[SubAgentManager] Removing agent ${agentId}`);
     const agent = this.agents.get(agentId);
-    if (!agent) return;
+    if (!agent) {
+      console.warn(`[SubAgentManager] Agent ${agentId} not found. Active:`, Array.from(this.agents.keys()));
+      return;
+    }
 
     // Free the spot
     const spot = this.spots.find(s => s.agentId === agentId);

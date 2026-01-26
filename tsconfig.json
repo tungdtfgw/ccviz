@@ -18,7 +18,7 @@
       "@shared/events": ["src/shared/claude-code-event-stream-types-and-payloads.ts"],
       "@shared/state": ["src/shared/server-session-and-agent-state-interfaces.ts"],
       "@shared/*": ["src/shared/*"],
-      "@shared": ["src/shared/robotruncc-shared-types-teams-events-state-barrel.ts"]
+      "@shared": ["src/shared/ccviz-shared-types-teams-events-state-barrel.ts"]
     },
     "types": ["bun-types"]
   },

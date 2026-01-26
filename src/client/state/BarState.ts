@@ -133,8 +133,12 @@ class BarState extends EventEmitter<BarStateEvents> {
   }
 
   removeAgentById(agentId: string, result?: string): void {
+    console.log(`[BarState] Removing agent ${agentId}`);
     const agent = this.state.activeAgents.get(agentId);
-    if (!agent) return;
+    if (!agent) {
+      console.warn(`[BarState] Agent ${agentId} not found. Active:`, Array.from(this.state.activeAgents.keys()));
+      return;
+    }
 
     if (result) {
       agent.result = result;
@@ -147,7 +151,10 @@ class BarState extends EventEmitter<BarStateEvents> {
 
   updateContext(sessionId: string, percent: number, tokens: number): void {
     const session = this.state.sessions.get(sessionId);
-    if (!session) return;
+    if (!session) {
+      console.warn(`[BarState] updateContext for unknown session ${sessionId}`);
+      return;
+    }
 
     const prevPercent = session.contextPercent;
     

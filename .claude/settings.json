@@ -6,81 +6,6 @@
     "padding": 0
   },
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "startup|resume|clear|compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-init.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/hooks/session-start.cjs"
-          },
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/robotruncc-send-session-lifecycle-events-to-visualization-server.sh"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/hooks/session-end.cjs"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/robotruncc-send-session-lifecycle-events-to-visualization-server.sh"
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-init.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/hooks/subagent-start.cjs"
-          },
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/hook-subagent-spawn-and-stop-events-to-visualization-http-server.sh"
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/hooks/subagent-stop.cjs"
-          },
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/hook-subagent-spawn-and-stop-events-to-visualization-http-server.sh"
-          }
-        ]
-      }
-    ],
     "UserPromptSubmit": [
       {
         "hooks": [
@@ -111,25 +36,22 @@
         ]
       },
       {
-        "matcher": "mcp__.*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/hooks/tool-pre.cjs"
-          },
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-tool-use-hook-send-mcp-tool-events-to-visualization-server.sh"
-          }
-        ]
-      },
-      {
         "matcher": "Write",
         "hooks": [
           {
             "type": "prompt",
             "prompt": "Use kebab-case file naming with a long descriptive name to ensure this file name is self-documenting, so that when LLM is using tools (Grep, Glob, Search) to list files, it can guess what the file does right away without reading the file.",
             "_origin": "engineer"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ccviz/pre-tool-use-hook-send-mcp-tool-events-to-visualization-server.sh",
+            "_origin": "ccviz"
           }
         ]
       }
@@ -158,7 +80,55 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/hooks/tool-post.cjs"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ccviz/post-tool-use-hook-send-mcp-tool-end-events-to-visualization-server.sh",
+            "_origin": "ccviz"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ccviz/ccviz-send-session-lifecycle-events-to-visualization-server.sh",
+            "_origin": "ccviz"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ccviz/ccviz-send-session-lifecycle-events-to-visualization-server.sh",
+            "_origin": "ccviz"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ccviz/hook-subagent-spawn-and-stop-events-to-visualization-http-server.sh",
+            "_origin": "ccviz"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ccviz/hook-subagent-spawn-and-stop-events-to-visualization-http-server.sh",
+            "_origin": "ccviz"
           }
         ]
       }

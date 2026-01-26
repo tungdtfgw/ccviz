@@ -403,10 +403,15 @@ export class BarScene extends Phaser.Scene {
     // Context updates
     socketClient.on('context:update', (e: BarEvent) => {
       const p = e.payload as ContextPayload;
-      const sessionId = p.sessionId || barState.getAllSessions()[0]?.sessionId;
-      if (sessionId) {
-        barState.updateContext(sessionId, p.percent, p.tokens);
+      if (!p.sessionId) {
+        console.warn('[BarScene] context:update received without sessionId, ignoring');
+        return;
       }
+      if (!barState.getSession(p.sessionId)) {
+        console.warn(`[BarScene] context:update for unknown session ${p.sessionId}, ignoring`);
+        return;
+      }
+      barState.updateContext(p.sessionId, p.percent, p.tokens);
     });
 
     // Skill usage

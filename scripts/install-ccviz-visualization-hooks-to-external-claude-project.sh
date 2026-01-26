@@ -1,13 +1,13 @@
 #!/bin/bash
-# Install robotruncc visualization hooks to another Claude Code project
-# Usage: ./scripts/install-robotruncc-visualization-hooks-to-external-claude-project.sh /path/to/target/project
+# Install ccviz visualization hooks to another Claude Code project
+# Usage: ./scripts/install-ccviz-visualization-hooks-to-external-claude-project.sh /path/to/target/project
 
 set -e
 
 TARGET="${1:?Usage: $0 /path/to/target/project}"
 SOURCE="$(cd "$(dirname "$0")/.." && pwd)"
 
-echo "Installing robotruncc hooks from $SOURCE to $TARGET"
+echo "Installing ccviz hooks from $SOURCE to $TARGET"
 
 # Create directories
 mkdir -p "$TARGET/hooks"
@@ -15,7 +15,7 @@ mkdir -p "$TARGET/.claude/hooks"
 
 # Copy hooks
 cp "$SOURCE/hooks/status-line-wrapper.cjs" "$TARGET/hooks/"
-cp "$SOURCE/.claude/hooks/robotruncc-send-session-lifecycle-events-to-visualization-server.sh" "$TARGET/.claude/hooks/"
+cp "$SOURCE/.claude/hooks/ccviz-send-session-lifecycle-events-to-visualization-server.sh" "$TARGET/.claude/hooks/"
 cp "$SOURCE/.claude/hooks/hook-subagent-spawn-and-stop-events-to-visualization-http-server.sh" "$TARGET/.claude/hooks/"
 cp "$SOURCE/.claude/hooks/pre-tool-use-hook-send-mcp-tool-events-to-visualization-server.sh" "$TARGET/.claude/hooks/"
 cp "$SOURCE/.claude/hooks/post-tool-use-hook-send-mcp-tool-end-events-to-visualization-server.sh" "$TARGET/.claude/hooks/" 2>/dev/null || true
@@ -40,14 +40,14 @@ else
       "matcher": "startup|resume",
       "hooks": [{
         "type": "command",
-        "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/robotruncc-send-session-lifecycle-events-to-visualization-server.sh"
+        "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ccviz-send-session-lifecycle-events-to-visualization-server.sh"
       }]
     }],
     "SessionEnd": [{
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/robotruncc-send-session-lifecycle-events-to-visualization-server.sh"
+        "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ccviz-send-session-lifecycle-events-to-visualization-server.sh"
       }]
     }],
     "SubagentStart": [{
@@ -87,10 +87,10 @@ fi
 echo ""
 echo "Done! Files installed:"
 echo "  - $TARGET/hooks/status-line-wrapper.cjs"
-echo "  - $TARGET/.claude/hooks/robotruncc-send-session-lifecycle-events-to-visualization-server.sh"
+echo "  - $TARGET/.claude/hooks/ccviz-send-session-lifecycle-events-to-visualization-server.sh"
 echo "  - $TARGET/.claude/hooks/hook-subagent-spawn-and-stop-events-to-visualization-http-server.sh"
 echo "  - $TARGET/.claude/hooks/pre-tool-use-hook-send-mcp-tool-events-to-visualization-server.sh"
 echo "  - $TARGET/.claude/hooks/post-tool-use-hook-send-mcp-tool-end-events-to-visualization-server.sh"
 echo ""
-echo "Make sure robotruncc server is running:"
+echo "Make sure ccviz server is running:"
 echo "  cd $SOURCE && bun run dev:server"
