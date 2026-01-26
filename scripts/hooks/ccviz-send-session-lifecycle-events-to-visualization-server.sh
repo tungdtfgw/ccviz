@@ -33,7 +33,6 @@ case "$HOOK_EVENT" in
     send_event "session:start" "{\"sessionId\": \"$SESSION_ID\", \"contextPercent\": 0}"
     ;;
   SessionEnd)
-    # Only send session:end on actual session close, NOT on Stop (which fires after every response)
     send_event "session:end" "{\"sessionId\": \"$SESSION_ID\"}"
     ;;
 esac

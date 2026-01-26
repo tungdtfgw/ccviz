@@ -110,3 +110,6 @@ credentials.json
 # Miscellaneous development files
 .env.example~
 .vscode-test/
+
+# Claude Code local installation
+.claude/
