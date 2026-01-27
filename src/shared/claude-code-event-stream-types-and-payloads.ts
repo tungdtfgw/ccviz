@@ -21,6 +21,7 @@ export interface BarEvent<T = unknown> {
 export interface SessionStartPayload {
   sessionId: string;
   teamKey: TeamKey;
+  tableIndex?: number; // Server-assigned table index (matches team logo)
   contextPercent: number;
   tokensUsed?: number;
 }

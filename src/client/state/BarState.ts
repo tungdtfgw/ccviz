@@ -53,14 +53,16 @@ class BarState extends EventEmitter<BarStateEvents> {
 
   private tableCounter = 0;
 
-  openSession(sessionId: string, teamKey: TeamKey, contextPercent = 0): SessionState | null {
+  openSession(sessionId: string, teamKey: TeamKey, contextPercent = 0, serverTableIndex?: number): SessionState | null {
     if (this.state.sessions.has(sessionId)) {
       return this.state.sessions.get(sessionId)!;
     }
 
-    // Assign table index (0-7)
-    const tableIndex = this.tableCounter % 8;
-    this.tableCounter++;
+    // Use server-assigned tableIndex (matches team logo), fallback to counter
+    const tableIndex = serverTableIndex ?? (this.tableCounter % 8);
+    if (serverTableIndex === undefined) {
+      this.tableCounter++;
+    }
 
     const session: SessionState = {
       sessionId,

@@ -16,6 +16,7 @@ export function handleEvent(event: BarEvent, io: SocketServer): void {
         const enrichedPayload: SessionStartPayload = {
           sessionId: session.sessionId,
           teamKey: session.teamKey,
+          tableIndex: session.tableIndex,
           contextPercent: session.contextPercent
         };
         io.emit('session:start', { type, timestamp: event.timestamp, payload: enrichedPayload });

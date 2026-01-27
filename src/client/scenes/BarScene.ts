@@ -10,6 +10,10 @@ import { Waiter } from '../sprites/Waiter';
 import { Chef } from '../sprites/npc-chef-food-delivery-sprite';
 import { SpeechBubblePool } from '../sprites/SpeechBubble';
 import { TVDisplay } from '../sprites/TVDisplay';
+import { SpeakerControl } from '../sprites/SpeakerControl';
+import { WallClock } from '../sprites/WallClock';
+import { AudioManager } from '../managers/audio-manager';
+import { DayNightController, type PhaseData } from '../managers/day-night-controller';
 import type { BarEvent, SessionStartPayload, SubagentPayload, ContextPayload } from '@shared/events';
 import type { TeamKey } from '@shared/teams';
 import { TEAMS } from '@shared/teams';
@@ -23,6 +27,12 @@ interface TableDisplay {
 export class BarScene extends Phaser.Scene {
   // Track table displays (graphics + logo)
   private tableDisplays: TableDisplay[] = [];
+
+  // Default team assignments for table pre-rendering (MUST match TABLE_TEAM_MAPPING in shared/teams)
+  private readonly defaultTableTeams: TeamKey[] = [
+    'mu', 'chelsea', 'arsenal', 'real-madrid',
+    'barcelona', 'juventus', 'ac-milan', 'liverpool'
+  ];
 
   // 8 tables for customers (4 on each side)
   public positions = {
@@ -69,8 +79,8 @@ export class BarScene extends Phaser.Scene {
     ],
     // Trophies - bottom aligned with speaker bottom (y=210)
     trophies: [
-      { x: 260, y: 210 },
-      { x: 310, y: 210 },
+      { x: 200, y: 210 },  // Left cup - shifted far left
+      { x: 250, y: 210 },  // Left cup - shifted far left
       { x: 540, y: 210 }
     ],
     menuBoard: { x: 200, y: 520 }
@@ -85,6 +95,14 @@ export class BarScene extends Phaser.Scene {
   private chef!: Chef;
   private bubblePool!: SpeechBubblePool;
   private tvDisplay!: TVDisplay;
+  private speakerControl!: SpeakerControl;
+  private wallClock!: WallClock;
+  private audioManager!: AudioManager;
+  private dayNightController!: DayNightController;
+
+  // Lighting system (Phase 3)
+  private ambientOverlay!: Phaser.GameObjects.Graphics;
+  private lightSprites: Phaser.GameObjects.Graphics[] = [];
 
   // Track MCP state for customer food
   private currentMcpSession: string | null = null;
@@ -131,6 +149,53 @@ export class BarScene extends Phaser.Scene {
 
     // Speech bubble pool for dialog
     this.bubblePool = new SpeechBubblePool(this, 10);
+
+    // Initialize audio manager (Phase 2)
+    this.audioManager = new AudioManager(this);
+
+    // Load mute preference from localStorage
+    const savedMuted = localStorage.getItem('ccviz-audio-muted');
+    if (savedMuted === 'true') {
+      this.audioManager.muteAll();
+    }
+
+    // Attempt immediate audio playback (may be blocked by browser autoplay policy)
+    const soundManager = this.sound as Phaser.Sound.WebAudioSoundManager;
+    if (!soundManager.context || soundManager.context.state === 'suspended') {
+      // Audio context suspended - wait for first user interaction
+      this.input.once('pointerdown', () => {
+        if (!this.audioManager.isMuted()) {
+          this.audioManager.playBGM('bgm-80s', true, 2000);
+        }
+      });
+    } else {
+      // Audio context ready - start immediately if not muted
+      if (!this.audioManager.isMuted()) {
+        this.audioManager.playBGM('bgm-80s', true, 2000);
+      }
+    }
+
+    // Speaker control below TV (interactive with sound waves)
+    // Must be created AFTER audioManager initialization
+    this.speakerControl = new SpeakerControl(
+      this,
+      this.positions.tv.x,
+      210, // Bottom aligned with trophy cups
+      this.audioManager
+    );
+
+    // Initialize day/night lighting (Phase 3)
+    this.dayNightController = new DayNightController(this);
+    this.createLightingOverlay();
+
+    // Wall clock below timer (tracks game day/night cycle)
+    this.wallClock = new WallClock(
+      this,
+      740, // Aligned with timer (700 + 40px offset)
+      70,  // Below timer panel with comfortable gap (10 + 28 + 32px)
+      this.dayNightController.getCycleDuration()
+    );
+    this.wallClock.setDepth(1000); // Above all game elements (HUD layer)
 
     this.setupSocketListeners();
     this.setupStateListeners();
@@ -202,11 +267,6 @@ export class BarScene extends Phaser.Scene {
         .setDepth(540);  // Above counter (530)
     }
 
-    // Speaker system below TV
-    this.add.sprite(this.positions.tv.x, this.positions.tv.y + 60, 'speaker-system')
-      .setOrigin(0.5, 0)
-      .setDepth(10);
-
     // Bar name text "Claude Code Bar Pub" in center of counter
     const barNameText = this.add.text(400, 555, 'Claude Code Bar Pub', {
       fontFamily: 'Georgia, serif',
@@ -252,6 +312,14 @@ export class BarScene extends Phaser.Scene {
       };
     });
 
+    // Pre-render team logos on all 8 tables (FIXED - never changes)
+    // Each table is permanently assigned to one team
+    // Customers are assigned to tables matching their team
+    this.positions.tables.forEach((pos, index) => {
+      const teamKey = this.defaultTableTeams[index];
+      this.setTableTeam(index, teamKey);
+    });
+
     // Bar counter at bottom - dark mahogany
     const counterG = this.add.graphics();
     counterG.fillStyle(0x6B3A1F);
@@ -287,17 +355,16 @@ export class BarScene extends Phaser.Scene {
     this.barSign = new BarSign(this, this.positions.entrance.x, this.positions.entrance.y - 100);
   }
 
-  // Draw table with optional team edge color
+  // Draw table with brown wood surface (no team coloring)
   private drawTable(g: Phaser.GameObjects.Graphics, x: number, y: number, teamColor?: number) {
     g.clear();
 
-    // Table surface - polished oak
+    // Table surface - polished oak brown (always, no team color)
     g.fillStyle(0x8B4513);
     g.fillRect(x - 40, y - 20, 80, 40);
 
-    // Table edge - team color or default mahogany
-    const edgeColor = teamColor ?? 0x6B3A1F;
-    g.fillStyle(edgeColor);
+    // Table edge - brown mahogany border
+    g.fillStyle(0x6B3A1F);
     g.fillRect(x - 40, y + 16, 80, 6);
 
     // Chairs (left and right) - warm saddle brown
@@ -307,20 +374,22 @@ export class BarScene extends Phaser.Scene {
   }
 
   // Set table to team colors with logo
+  // Initialize permanent team logo on table (called ONCE during create)
   private setTableTeam(tableIndex: number, teamKey: TeamKey) {
     if (tableIndex < 0 || tableIndex >= this.tableDisplays.length) return;
 
     const display = this.tableDisplays[tableIndex];
+
+    // Skip if logo already exists (safety check - should only be called once)
+    if (display.teamKey === teamKey && display.logo) return;
+
     const team = TEAMS.find(t => t.key === teamKey);
     if (!team) return;
 
     const pos = this.positions.tables[tableIndex];
 
-    // Convert hex color string to number
-    const teamColorNum = Phaser.Display.Color.HexStringToColor(team.primary).color;
-
-    // Redraw table with team edge color
-    this.drawTable(display.graphics, pos.x, pos.y, teamColorNum);
+    // Redraw table with brown wood surface (no team coloring)
+    this.drawTable(display.graphics, pos.x, pos.y);
 
     // Remove old logo if exists
     if (display.logo) {
@@ -328,17 +397,21 @@ export class BarScene extends Phaser.Scene {
       display.logo = null;
     }
 
-    // Add team logo on table surface
+    // Add team logo on table surface (thu nhỏ để không chạm cạnh bàn)
+    // Table surface: 80×40px (y-20 to y+20), edge: y+16 to y+22
+    // Logo: 28×28px (center tại y, top: y-14, bottom: y+14 → 2px margin từ edge)
+    // All logos are PNG 100×100, scaled to 0.28× = 28px
     const logoKey = `logo-${teamKey}`;
-    display.logo = this.add.sprite(pos.x, pos.y - 5, logoKey);
+    display.logo = this.add.sprite(pos.x, pos.y, logoKey);
     display.logo.setOrigin(0.5, 0.5);
+    display.logo.setScale(0.28); // 100×100 PNG → 28×28 display
     display.logo.setDepth(pos.y + 1); // Above table surface
     display.teamKey = teamKey;
   }
 
-  // Reset table to default appearance
+  // Reset table to default appearance (keep logo displayed)
   private resetTable(tableIndex: number) {
-    if (tableIndex < 0 || tableIndex >= this.tableDisplays.length) return;
+    if (tableIndex === undefined || tableIndex < 0 || tableIndex >= this.tableDisplays.length) return;
 
     const display = this.tableDisplays[tableIndex];
     const pos = this.positions.tables[tableIndex];
@@ -346,12 +419,8 @@ export class BarScene extends Phaser.Scene {
     // Redraw table with default color
     this.drawTable(display.graphics, pos.x, pos.y);
 
-    // Remove logo
-    if (display.logo) {
-      display.logo.destroy();
-      display.logo = null;
-    }
-    display.teamKey = null;
+    // Keep logo displayed - only replaced when different team arrives
+    // This preserves "last team at table" visual state
   }
 
   private setupSocketListeners() {
@@ -361,7 +430,8 @@ export class BarScene extends Phaser.Scene {
       barState.openSession(
         p.sessionId,
         p.teamKey as TeamKey,
-        p.contextPercent
+        p.contextPercent,
+        p.tableIndex
       );
     });
 
@@ -448,7 +518,7 @@ export class BarScene extends Phaser.Scene {
       };
       console.log('[BarScene] State sync received:', state.sessions?.length || 0, 'sessions');
       state.sessions?.forEach(s => {
-        barState.openSession(s.sessionId, s.teamKey, s.contextPercent);
+        barState.openSession(s.sessionId, s.teamKey, s.contextPercent, s.tableIndex);
       });
     });
 
@@ -478,12 +548,15 @@ export class BarScene extends Phaser.Scene {
     barState.on('session:open', (session: SessionState) => {
       console.log(`[BarScene] Session opened: ${session.sessionId} (${session.teamKey})`);
 
+      // Door open sound (Phase 2)
+      this.audioManager.playSFX('door-open');
+
       // Get team color for speech
       const team = TEAMS.find(t => t.key === session.teamKey);
       const teamColor = team?.primary ?? '#D2691E';
 
-      // Set table to team colors with logo
-      this.setTableTeam(session.tableIndex, session.teamKey);
+      // Logo is already pre-rendered and fixed on tables (no change needed)
+      // Customer is assigned to table matching their team
 
       // Bartender greets the new customer
       this.bartender.speak('Hi, viber!', teamColor);
@@ -514,6 +587,24 @@ export class BarScene extends Phaser.Scene {
     barState.on('session:close', ({ sessionId, tableIndex }: { sessionId: string; tableIndex: number }) => {
       console.log(`[BarScene] Session closed: ${sessionId}`);
 
+      // Farewell from NPCs (Phase 5) - Both Bartender and Waiter say goodbye
+      const session = barState.getSession(sessionId);
+      if (session) {
+        const team = TEAMS.find(t => t.key === session.teamKey);
+        const teamColor = team?.primary ?? '#D2691E';
+
+        // Bartender says farewell
+        this.bartender.speak('Good Vibe', teamColor);
+
+        // Waiter says farewell (slightly delayed for natural timing)
+        this.time.delayedCall(500, () => {
+          this.waiter.speak('Good Vibe', teamColor);
+        });
+      }
+
+      // Door close sound (Phase 2)
+      this.audioManager.playSFX('door-close');
+
       // Reset table to default appearance
       if (tableIndex !== undefined && tableIndex >= 0) {
         this.resetTable(tableIndex);
@@ -539,16 +630,37 @@ export class BarScene extends Phaser.Scene {
     barState.on('agent:enter', (agent: Agent) => {
       console.log(`[BarScene] Agent entered: ${agent.type} (${agent.id})`);
 
-      // Show task bubble when agent enters (if description provided)
-      if (agent.description) {
-        const subAgent = this.subAgentManager.getAgentById(agent.id);
-        if (subAgent) {
+      // Agent communication with Unicode alien text (Phase 5)
+      const parentCustomer = this.customerManager.getCustomer(agent.sessionId);
+      const subAgent = this.subAgentManager.getAgentById(agent.id);
+
+      if (parentCustomer && subAgent) {
+        // Parent customer speaks alien text to sub-agent
+        parentCustomer.speak('', true); // isAlien = true
+
+        // Sub-agent responds with alien text (delayed 2s)
+        this.time.delayedCall(2000, () => {
           const team = TEAMS.find(t => t.key === agent.teamKey);
           const bubble = this.bubblePool.get(subAgent.x, subAgent.y - 60);
           if (bubble) {
-            bubble.setText(agent.description, team?.primary);
+            bubble.setText('', team?.primary, true); // isAlien = true
           }
-        }
+        });
+      }
+
+      // Show task bubble when agent enters (if description provided)
+      // Delayed 4s after alien communication
+      if (agent.description) {
+        this.time.delayedCall(4000, () => {
+          const subAgent = this.subAgentManager.getAgentById(agent.id);
+          if (subAgent) {
+            const team = TEAMS.find(t => t.key === agent.teamKey);
+            const bubble = this.bubblePool.get(subAgent.x, subAgent.y - 60);
+            if (bubble && agent.description) {
+              bubble.setText(agent.description, team?.primary);
+            }
+          }
+        });
       }
     });
 
@@ -601,6 +713,9 @@ export class BarScene extends Phaser.Scene {
     // MCP tool call - customer orders, bartender responds, chef brings food
     barState.on('mcp:start', (serverName: string) => {
       console.log(`[BarScene] MCP call started: ${serverName}`);
+
+      // Kitchen door sound (Phase 2)
+      this.audioManager.playSFX('kitchen-door');
 
       // Find first session for MCP (use first customer)
       const sessions = barState.getAllSessions();
@@ -692,8 +807,92 @@ export class BarScene extends Phaser.Scene {
     });
   }
 
-  update() {
+  update(time: number, delta: number) {
     this.barSign.update();
+
+    // Update day/night lighting cycle (Phase 3)
+    const phaseData = this.dayNightController.update(delta);
+    this.applyLighting(phaseData);
+
+    // Update wall clock to match game time
+    this.wallClock.update(this.dayNightController.getElapsed());
+  }
+
+  // Cleanup when scene shuts down
+  shutdown() {
+    this.audioManager?.destroy();
+
+    // Cleanup table displays to prevent memory leaks
+    this.tableDisplays.forEach(display => {
+      if (display.logo) {
+        display.logo.destroy();
+        display.logo = null;
+      }
+      display.graphics.destroy();
+    });
+    this.tableDisplays = [];
+  }
+
+  /**
+   * Create lighting overlay and light sprites (Phase 3)
+   */
+  private createLightingOverlay() {
+    // Ambient overlay - covers entire scene for day/night tinting
+    this.ambientOverlay = this.add.graphics();
+    this.ambientOverlay.setDepth(1000); // Above everything
+    this.ambientOverlay.setAlpha(0.3); // Subtle tint effect
+    this.ambientOverlay.setBlendMode(Phaser.BlendModes.MULTIPLY);
+
+    // Indoor light sprites (warm glow near decorations)
+    // Light 1: Above left photo frames
+    const light1 = this.add.graphics();
+    light1.fillStyle(0xFFDC96, 0); // Warm amber, start invisible
+    light1.fillCircle(170, 130, 60); // Larger radius for soft glow
+    light1.setDepth(5);
+    light1.setBlendMode(Phaser.BlendModes.ADD); // Additive blending
+    this.lightSprites.push(light1);
+
+    // Light 2: Above TV/speaker area
+    const light2 = this.add.graphics();
+    light2.fillStyle(0xFFDC96, 0);
+    light2.fillCircle(400, 100, 80);
+    light2.setDepth(5);
+    light2.setBlendMode(Phaser.BlendModes.ADD);
+    this.lightSprites.push(light2);
+
+    // Light 3: Above right trophies
+    const light3 = this.add.graphics();
+    light3.fillStyle(0xFFDC96, 0);
+    light3.fillCircle(550, 180, 60);
+    light3.setDepth(5);
+    light3.setBlendMode(Phaser.BlendModes.ADD);
+    this.lightSprites.push(light3);
+  }
+
+  /**
+   * Apply lighting from day/night cycle (Phase 3)
+   * @param data - Current phase data with color and intensity
+   */
+  private applyLighting(data: PhaseData): void {
+    // Update ambient overlay color
+    const color = data.ambientColor.color;
+    this.ambientOverlay.clear();
+    this.ambientOverlay.fillStyle(color, 0.3);
+    this.ambientOverlay.fillRect(0, 0, 800, 600);
+
+    // Update indoor light intensity (alpha)
+    this.lightSprites.forEach(light => {
+      light.clear();
+      light.fillStyle(0xFFDC96, data.lightIntensity * 0.6); // Max 60% alpha
+      // Redraw at original positions
+      if (light === this.lightSprites[0]) {
+        light.fillCircle(170, 130, 60);
+      } else if (light === this.lightSprites[1]) {
+        light.fillCircle(400, 100, 80);
+      } else if (light === this.lightSprites[2]) {
+        light.fillCircle(550, 180, 60);
+      }
+    });
   }
 
   // Get random food type for MCP delivery
