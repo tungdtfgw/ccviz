@@ -3,6 +3,7 @@
 
 import Phaser from 'phaser';
 import { SpeechBubble } from './SpeechBubble';
+import { getContrastingTextColor } from '../utils/color-contrast';
 
 type BartenderState = 'idle' | 'wipe' | 'prepare';
 
@@ -22,11 +23,12 @@ export class Bartender extends Phaser.GameObjects.Container {
     this.sprite.setScale(1.1); // Slightly larger
 
     // Name tag "claude-code"
+    const bgColor = '#D2691E'; // Warm amber/bartender color
     this.nameTag = scene.add.text(0, -55, 'claude-code', {
       fontSize: '9px',
       fontFamily: 'monospace',
-      color: '#ffffff',
-      backgroundColor: '#D2691E', // Warm amber/bartender color
+      color: getContrastingTextColor(bgColor),
+      backgroundColor: bgColor,
       padding: { x: 3, y: 1 }
     });
     this.nameTag.setOrigin(0.5, 1);
@@ -130,9 +132,14 @@ export class Bartender extends Phaser.GameObjects.Container {
     });
   }
 
-  // Speak a message via speech bubble
-  speak(message: string, teamColor?: string) {
-    this.speechBubble.setText(message, teamColor);
+  /**
+   * Speak a message via speech bubble
+   * @param message - Text to display
+   * @param teamColor - Optional team color
+   * @param isAlien - Generate alien Unicode text (Phase 4)
+   */
+  speak(message: string, teamColor?: string, isAlien = false) {
+    this.speechBubble.setText(message, teamColor, isAlien);
   }
 
   destroy() {

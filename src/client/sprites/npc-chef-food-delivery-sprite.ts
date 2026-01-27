@@ -3,6 +3,7 @@
 
 import Phaser from 'phaser';
 import EventEmitter from 'eventemitter3';
+import { getContrastingTextColor } from '../utils/color-contrast';
 
 type ChefState = 'idle' | 'walking' | 'carrying';
 
@@ -45,16 +46,16 @@ export class Chef extends Phaser.GameObjects.Container {
     this.sprite.setOrigin(0.5, 1);
     this.sprite.setTint(0xFFFFFF); // White tint for chef
 
-    // Name tag "chef"
-    this.nameTag = scene.add.text(0, -50, 'chef', {
+    // Name tag "ccviz"
+    const bgColor = '#FFFFFF'; // White chef hat color
+    this.nameTag = scene.add.text(0, -50, 'ccviz', {
       fontSize: '9px',
       fontFamily: 'monospace',
-      color: '#ffffff',
-      backgroundColor: '#FFFFFF', // White chef hat color
+      color: getContrastingTextColor(bgColor),
+      backgroundColor: bgColor,
       padding: { x: 3, y: 1 }
     });
     this.nameTag.setOrigin(0.5, 1);
-    this.nameTag.setStyle({ color: '#333333' }); // Dark text on white bg
 
     this.add([this.sprite, this.nameTag]);
     scene.add.existing(this);
@@ -167,6 +168,13 @@ export class Chef extends Phaser.GameObjects.Container {
       const distance = Phaser.Math.Distance.Between(this.x, this.y, targetX, targetY);
       const duration = Math.max(400, distance * 2.5); // Faster than waiter
 
+      // Play random footstep sound (Phase 2)
+      const footstepKey = `footstep-${Phaser.Math.Between(1, 3)}`;
+      const barScene = this.scene as any;
+      if (barScene.audioManager) {
+        barScene.audioManager.playSFX(footstepKey, 0.3);
+      }
+
       // Flip based on direction
       this.sprite.setFlipX(targetX < this.x);
 
@@ -197,7 +205,7 @@ export class Chef extends Phaser.GameObjects.Container {
 
     this.carryFoodSprite = this.scene.add.sprite(0, -20, 'food');
     this.carryFoodSprite.setOrigin(0.5, 1);
-    this.carryFoodSprite.setScale(1.8);
+    this.carryFoodSprite.setScale(2.5); // Enlarged for better visibility
     this.carryFoodSprite.setFrame(frame);
     this.add(this.carryFoodSprite);
   }

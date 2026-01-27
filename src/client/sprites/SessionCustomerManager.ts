@@ -79,6 +79,7 @@ export class SessionCustomerManager {
     return null;
   }
 
+  // DEPRECATED: Fallback logic removed to maintain logo-table matching
   private findAvailableTable(): { table: TablePosition; index: number } | null {
     for (let i = 0; i < this.tables.length; i++) {
       if (!this.tables[i].occupied) {
@@ -101,22 +102,14 @@ export class SessionCustomerManager {
     if (tableIndex !== undefined && tableIndex >= 0) {
       table = this.getTable(tableIndex);
       if (table && table.occupied) {
-        // Table already occupied, find another
-        const available = this.findAvailableTable();
-        if (available) {
-          table = available.table;
-          finalTableIndex = available.index;
-        } else {
-          console.warn(`[CustomerManager] No tables available for ${sessionId}`);
-          return;
-        }
+        // Table already occupied - REJECT (no fallback to maintain logo matching)
+        console.error(`[CustomerManager] Table ${tableIndex} for ${sessionId} (${teamKey}) is occupied. Server should not assign occupied tables.`);
+        return;
       }
     } else {
-      const available = this.findAvailableTable();
-      if (available) {
-        table = available.table;
-        finalTableIndex = available.index;
-      }
+      // No table assigned from server - should not happen
+      console.error(`[CustomerManager] No table index provided for ${sessionId}`);
+      return;
     }
 
     if (!table) {
@@ -145,7 +138,8 @@ export class SessionCustomerManager {
       this.entrancePos.x,
       this.entrancePos.y,
       seat.x,
-      seat.y
+      seat.y,
+      table.x // Pass table center X for smart beer positioning
     );
 
     // Set initial beer level

@@ -4,6 +4,7 @@
 import Phaser from 'phaser';
 import EventEmitter from 'eventemitter3';
 import { SpeechBubble } from './SpeechBubble';
+import { getContrastingTextColor } from '../utils/color-contrast';
 
 type WaiterState = 'idle' | 'walking' | 'carrying';
 
@@ -67,11 +68,12 @@ export class Waiter extends Phaser.GameObjects.Container {
     this.sprite.setOrigin(0.5, 1);
 
     // Name tag "claude-kit"
+    const bgColor = '#8B0000'; // Burgundy (matches waiter vest)
     this.nameTag = scene.add.text(0, -50, 'claude-kit', {
       fontSize: '9px',
       fontFamily: 'monospace',
-      color: '#ffffff',
-      backgroundColor: '#8B0000', // Burgundy (matches waiter vest)
+      color: getContrastingTextColor(bgColor),
+      backgroundColor: bgColor,
       padding: { x: 3, y: 1 }
     });
     this.nameTag.setOrigin(0.5, 1);
@@ -276,6 +278,13 @@ export class Waiter extends Phaser.GameObjects.Container {
       const distance = Phaser.Math.Distance.Between(this.x, this.y, targetX, targetY);
       const duration = Math.max(500, distance * 3); // Speed based on distance
 
+      // Play random footstep sound (Phase 2)
+      const footstepKey = `footstep-${Phaser.Math.Between(1, 3)}`;
+      const barScene = this.scene as any;
+      if (barScene.audioManager) {
+        barScene.audioManager.playSFX(footstepKey, 0.3);
+      }
+
       // Flip based on direction
       this.sprite.setFlipX(targetX < this.x);
 
@@ -347,7 +356,7 @@ export class Waiter extends Phaser.GameObjects.Container {
 
     this.carryFoodSprite = this.scene.add.sprite(0, -20, 'food');
     this.carryFoodSprite.setOrigin(0.5, 1);
-    this.carryFoodSprite.setScale(1.5);
+    this.carryFoodSprite.setScale(2.5); // Enlarged for better visibility
     this.carryFoodSprite.setFrame(frame);
     this.add(this.carryFoodSprite);
   }
@@ -382,11 +391,16 @@ export class Waiter extends Phaser.GameObjects.Container {
     return this.deliveryQueue.length + this.foodQueue.length;
   }
 
-  // Speak a message via speech bubble
-  speak(message: string, teamColor?: string) {
+  /**
+   * Speak a message via speech bubble
+   * @param message - Text to display
+   * @param teamColor - Optional team color
+   * @param isAlien - Generate alien Unicode text (Phase 4)
+   */
+  speak(message: string, teamColor?: string, isAlien = false) {
     // Update bubble position to current waiter position
     this.speechBubble.setPosition(this.x, this.y - 65);
-    this.speechBubble.setText(message, teamColor);
+    this.speechBubble.setText(message, teamColor, isAlien);
   }
 
   destroy() {
