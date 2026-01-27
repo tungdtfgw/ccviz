@@ -16,8 +16,8 @@ Xem các phiên code AI của bạn sống động như những khách hàng g�
 
 ## Yêu cầu
 
-- [Bun](https://bun.sh/) runtime
 - [Node.js](https://nodejs.org/) v18+
+- npm hoặc yarn
 - Claude Code CLI đã cài đặt
 
 ## Bắt đầu nhanh
@@ -26,7 +26,7 @@ Xem các phiên code AI của bạn sống động như những khách hàng g�
 # 1. Clone và cài đặt dependencies
 git clone <repo-url> ccviz
 cd ccviz
-bun install
+npm install
 
 # 2. Link package globally (chỉ cần 1 lần)
 npm link
@@ -39,7 +39,7 @@ npx ccviz install --global    # Cho TẤT CẢ projects dùng Claude Code
 
 # 4. Khởi động server trực quan hóa
 cd /path/to/ccviz
-bun run dev
+npm run dev
 
 # 5. Mở trình duyệt
 open http://localhost:5173
@@ -91,7 +91,7 @@ npx ccviz uninstall --global   # Gỡ khỏi config global
 ```
 +-------------------+     HTTP Events     +-------------------+
 |   Claude Code     | ------------------> |  ccviz Server     |
-|   (với hooks)     |     Port 3847       |   (Bun + WS)      |
+|   (với hooks)     |     Port 3847       | (Express + WS)    |
 +-------------------+                     +---------+---------+
                                                     |
                                              WebSocket
@@ -105,14 +105,18 @@ npx ccviz uninstall --global   # Gỡ khỏi config global
 ## Phát triển
 
 ```bash
-# Chạy ở chế độ development
-bun run dev
+# Chạy ở chế độ development (client + server)
+npm run dev
 
 # Build cho production
-bun run build
+npm run build           # Build client
+npm run build:server    # Build server
 
 # Kiểm tra type
-bun run typecheck
+npm run typecheck
+
+# Chạy production server
+npm start
 ```
 
 ## Cấu trúc Project
@@ -124,7 +128,7 @@ ccviz/
 │   │   ├── scenes/       # Game scenes (BarScene, PreloadScene)
 │   │   ├── sprites/      # Game objects (Customer, Bartender, v.v.)
 │   │   └── state/        # Quản lý state
-│   ├── server/           # Bun HTTP + WebSocket server
+│   ├── server/           # Express HTTP + WebSocket server
 │   └── shared/           # Types và constants dùng chung
 ├── scripts/              # CLI tools (install, uninstall)
 ├── .claude/hooks/        # CC hooks gửi events
@@ -164,4 +168,4 @@ MIT
 
 ---
 
-*Tạo bằng Phaser.js, Bun, và rất nhiều bia ảo*
+*Tạo bằng Phaser.js, Express, và rất nhiều bia ảo*

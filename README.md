@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/runtime-Bun-f9f1e1?logo=bun" alt="Bun">
+  <img src="https://img.shields.io/badge/runtime-Node.js-339933?logo=node.js" alt="Node.js">
   <img src="https://img.shields.io/badge/engine-Phaser.js-blue" alt="Phaser.js">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
 </p>
@@ -48,7 +48,7 @@
 # 1. Clone and install
 git clone https://github.com/tungdtfgw/ccviz.git
 cd ccviz
-bun install
+npm install
 
 # 2. Link package globally
 npm link
@@ -61,7 +61,7 @@ npx ccviz install --global    # For ALL Claude Code projects
 
 # 4. Start visualization server
 cd /path/to/ccviz
-bun run dev
+npm run dev
 
 # 5. Open browser and start coding!
 open http://localhost:5173
@@ -72,7 +72,7 @@ open http://localhost:5173
 ```
 ┌─────────────────┐    HTTP Events    ┌─────────────────┐
 │   Claude Code   │ ───────────────── │  ccviz Server   │
-│  (with hooks)   │    Port 3847      │   (Bun + WS)    │
+│  (with hooks)   │    Port 3847      │ (Express + WS)  │
 └─────────────────┘                   └────────┬────────┘
                                                │
                                           WebSocket
@@ -125,14 +125,18 @@ npx ccviz uninstall --global   # Remove from global config
 ## Development
 
 ```bash
-# Run in development mode
-bun run dev
+# Run in development mode (client + server)
+npm run dev
 
 # Build for production
-bun run build
+npm run build           # Build client
+npm run build:server    # Build server
 
 # Type check
-bun run typecheck
+npm run typecheck
+
+# Start production server
+npm start
 ```
 
 ## Project Structure
@@ -144,7 +148,7 @@ ccviz/
 │   │   ├── scenes/       # Game scenes (BarScene, PreloadScene)
 │   │   ├── sprites/      # Game objects (Customer, NPCs, etc.)
 │   │   └── state/        # State management
-│   ├── server/           # Bun HTTP + WebSocket server
+│   ├── server/           # Express HTTP + WebSocket server
 │   └── shared/           # Shared types and constants
 ├── scripts/              # CLI tools (install, uninstall)
 └── public/               # Static assets (sprites, fonts)
@@ -157,5 +161,5 @@ MIT
 ---
 
 <p align="center">
-  <em>Made with Phaser.js, Bun, and lots of virtual beer</em>
+  <em>Made with Phaser.js, Express, and lots of virtual beer</em>
 </p>
