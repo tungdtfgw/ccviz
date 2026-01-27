@@ -9,6 +9,49 @@ export class PreloadScene extends Phaser.Scene {
   preload() {
     // Create all textures synchronously
     this.createAllTextures();
+
+    // Load audio assets (Phase 1: Setup and Assets)
+    // Background music
+    this.load.audio('bgm-80s', [
+      'assets/audio/music/bgm-80s-chiptune.mp3',
+      'assets/audio/music/bgm-80s-chiptune.ogg'
+    ]);
+
+    // Sound effects
+    this.load.audio('door-open', [
+      'assets/audio/sfx/door-open.mp3',
+      'assets/audio/sfx/door-open.ogg'
+    ]);
+    this.load.audio('door-close', [
+      'assets/audio/sfx/door-close.mp3',
+      'assets/audio/sfx/door-close.ogg'
+    ]);
+    this.load.audio('footstep-1', [
+      'assets/audio/sfx/footstep-1.mp3',
+      'assets/audio/sfx/footstep-1.ogg'
+    ]);
+    this.load.audio('footstep-2', [
+      'assets/audio/sfx/footstep-2.mp3',
+      'assets/audio/sfx/footstep-2.ogg'
+    ]);
+    this.load.audio('footstep-3', [
+      'assets/audio/sfx/footstep-3.mp3',
+      'assets/audio/sfx/footstep-3.ogg'
+    ]);
+    this.load.audio('kitchen-door', [
+      'assets/audio/sfx/kitchen-door.mp3',
+      'assets/audio/sfx/kitchen-door.ogg'
+    ]);
+
+    // Team logos (PNG images - 100x100, will scale to 36x36 in-game)
+    this.load.image('logo-mu', 'assets/logo/logo-mu.png');
+    this.load.image('logo-chelsea', 'assets/logo/logo-chelsea.png');
+    this.load.image('logo-arsenal', 'assets/logo/logo-arsenal.png');
+    this.load.image('logo-real-madrid', 'assets/logo/logo-real-madrid.png');
+    this.load.image('logo-barcelona', 'assets/logo/logo-barcelona.png');
+    this.load.image('logo-juventus', 'assets/logo/logo-juventus.png');
+    this.load.image('logo-ac-milan', 'assets/logo/logo-ac-milan.png');
+    this.load.image('logo-liverpool', 'assets/logo/logo-liverpool.png');
   }
 
   // Create all textures directly via texture manager
@@ -45,15 +88,15 @@ export class PreloadScene extends Phaser.Scene {
     this.createSimpleTexture('desk-phone', 32, 24, this.drawDeskPhone.bind(this));
     this.createSimpleTexture('speaker-system', 120, 30, this.drawSpeakerSystem.bind(this));
 
-    // Team logo badges (24x24 simplified)
-    this.createSimpleTexture('logo-mu', 24, 24, this.drawLogoMU.bind(this));
-    this.createSimpleTexture('logo-chelsea', 24, 24, this.drawLogoChelsea.bind(this));
-    this.createSimpleTexture('logo-arsenal', 24, 24, this.drawLogoArsenal.bind(this));
-    this.createSimpleTexture('logo-real-madrid', 24, 24, this.drawLogoRealMadrid.bind(this));
-    this.createSimpleTexture('logo-barcelona', 24, 24, this.drawLogoBarcelona.bind(this));
-    this.createSimpleTexture('logo-juventus', 24, 24, this.drawLogoJuventus.bind(this));
-    this.createSimpleTexture('logo-ac-milan', 24, 24, this.drawLogoACMilan.bind(this));
-    this.createSimpleTexture('logo-liverpool', 24, 24, this.drawLogoLiverpool.bind(this));
+    // Team logo badges - All using PNG images now (loaded in preload())
+    // this.createSimpleTexture('logo-mu', 24, 24, this.drawLogoMU.bind(this));
+    // this.createSimpleTexture('logo-chelsea', 24, 24, this.drawLogoChelsea.bind(this));
+    // this.createSimpleTexture('logo-arsenal', 24, 24, this.drawLogoArsenal.bind(this));
+    // this.createSimpleTexture('logo-real-madrid', 24, 24, this.drawLogoRealMadrid.bind(this));
+    // this.createSimpleTexture('logo-barcelona', 24, 24, this.drawLogoBarcelona.bind(this));
+    // this.createSimpleTexture('logo-juventus', 24, 24, this.drawLogoJuventus.bind(this));
+    // this.createSimpleTexture('logo-ac-milan', 24, 24, this.drawLogoACMilan.bind(this));
+    // this.createSimpleTexture('logo-liverpool', 24, 24, this.drawLogoLiverpool.bind(this));
   }
 
   // Create team spritesheet (48x48, 24 frames)
@@ -70,7 +113,7 @@ export class PreloadScene extends Phaser.Scene {
     for (let i = 0; i < frameCount; i++) {
       ctx.save();
       ctx.translate(i * frameWidth, 0);
-      this.drawFanFrame48(ctx, i, team.primary, team.secondary);
+      this.drawFanFrame48(ctx, i, team.primary, team.secondary, team.key);
       ctx.restore();
     }
 
@@ -203,9 +246,24 @@ export class PreloadScene extends Phaser.Scene {
     }
   }
 
+  // Get team-specific kit colors (shirt, shorts, stripes pattern)
+  private getTeamKitColors(teamKey: string, primary: string, secondary: string) {
+    const kits: Record<string, { shirt: string; shorts: string; stripeType?: 'vertical' | 'horizontal'; stripeColor?: string }> = {
+      'chelsea': { shirt: '#034694', shorts: '#034694' }, // Blue shirt, blue shorts
+      'mu': { shirt: '#DA291C', shorts: '#000000' }, // Red shirt, black shorts
+      'arsenal': { shirt: '#EF0107', shorts: '#FFFFFF' }, // Red shirt, white shorts
+      'real-madrid': { shirt: '#FFFFFF', shorts: '#FFFFFF' }, // White shirt, white shorts
+      'liverpool': { shirt: '#C8102E', shorts: '#C8102E' }, // Red shirt, red shorts
+      'juventus': { shirt: '#000000', shorts: '#000000', stripeType: 'vertical', stripeColor: '#FFFFFF' }, // Black/white vertical stripes, black shorts
+      'ac-milan': { shirt: '#FB090B', shorts: '#000000', stripeType: 'vertical', stripeColor: '#000000' }, // Red/black vertical stripes, black shorts
+      'barcelona': { shirt: '#004D98', shorts: '#004D98', stripeType: 'vertical', stripeColor: '#A50044' }, // Blue/red vertical stripes, blue shorts
+    };
+    return kits[teamKey] || { shirt: primary, shorts: secondary };
+  }
+
   // Draw 48x48 football fan with enhanced detail (24 frames)
   // Frame map: 0-3 walk, 4-9 drink, 10-13 idle, 14-19 eat, 20-23 phone
-  private drawFanFrame48(ctx: CanvasRenderingContext2D, i: number, primary: string, secondary: string) {
+  private drawFanFrame48(ctx: CanvasRenderingContext2D, i: number, primary: string, secondary: string, teamKey: string) {
     const yBob = (i % 4 < 2) ? 0 : 1;
     const isWalking = i < 4;
     const isDrinking = i >= 4 && i <= 9;
@@ -228,22 +286,40 @@ export class PreloadScene extends Phaser.Scene {
     ctx.fillRect(19 + walkOffset, 10 + yBob, 3, 3);
     ctx.fillRect(26 + walkOffset, 10 + yBob, 3, 3);
 
-    // Jersey (team primary color) - larger body
-    ctx.fillStyle = primary;
-    ctx.fillRect(12, 20 + yBob, 24, 16);
+    // Get team-specific kit colors
+    const kit = this.getTeamKitColors(teamKey, primary, secondary);
 
-    // Jersey stripes (team secondary color)
-    ctx.fillStyle = secondary;
-    ctx.fillRect(12, 24 + yBob, 24, 3);
-    ctx.fillRect(12, 30 + yBob, 24, 3);
+    // Jersey (team-specific shirt color)
+    if (kit.stripeType === 'vertical' && kit.stripeColor) {
+      // Vertical stripes for Juventus, AC Milan, and Barcelona (alternating pattern)
+      // Jersey width: 24px, 6 stripes of 4px each
+      for (let stripe = 0; stripe < 6; stripe++) {
+        ctx.fillStyle = stripe % 2 === 0 ? kit.shirt : kit.stripeColor;
+        ctx.fillRect(12 + stripe * 4, 20 + yBob, 4, 16);
+      }
+    } else {
+      // Solid color shirt
+      ctx.fillStyle = kit.shirt;
+      ctx.fillRect(12, 20 + yBob, 24, 16);
+    }
 
-    // Jersey collar
-    ctx.fillStyle = secondary;
-    ctx.fillRect(18, 20 + yBob, 12, 3);
+    // Jersey collar (white for all)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(18, 20 + yBob, 12, 2);
 
-    // Shorts (team secondary color)
-    ctx.fillStyle = secondary;
+    // Jersey outline (black border)
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(12, 20 + yBob, 24, 16);
+
+    // Shorts (team-specific shorts color)
+    ctx.fillStyle = kit.shorts;
     ctx.fillRect(12, 36 + yBob, 24, 6);
+
+    // Shorts outline (black border)
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(12, 36 + yBob, 24, 6);
 
     // Left leg
     ctx.fillStyle = '#ffdbac';
@@ -252,10 +328,16 @@ export class PreloadScene extends Phaser.Scene {
     // Right leg
     ctx.fillRect(28 - legOffset, 42 + yBob, 8, 4);
 
-    // Socks (team primary)
-    ctx.fillStyle = primary;
+    // Socks (match shirt color)
+    ctx.fillStyle = kit.shirt;
     ctx.fillRect(12 + legOffset, 44 + yBob, 8, 4);
     ctx.fillRect(28 - legOffset, 44 + yBob, 8, 4);
+
+    // Socks outline (black border)
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(12 + legOffset, 44 + yBob, 8, 4);
+    ctx.strokeRect(28 - legOffset, 44 + yBob, 8, 4);
 
     // Arms
     ctx.fillStyle = '#ffdbac';
@@ -500,6 +582,11 @@ export class PreloadScene extends Phaser.Scene {
     ctx.fillStyle = '#333333';
     ctx.fillRect(12, 20 + yBob, 24, 18);
 
+    // Vest outline
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(12, 20 + yBob, 24, 18);
+
     // Shirt (white)
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(14, 22 + yBob, 20, 14);
@@ -507,6 +594,11 @@ export class PreloadScene extends Phaser.Scene {
     // Pants (black)
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(12, 38 + yBob, 24, 8);
+
+    // Pants outline
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(12, 38 + yBob, 24, 8);
 
     // Head (16x16)
     ctx.fillStyle = '#ffdbac';
@@ -556,6 +648,11 @@ export class PreloadScene extends Phaser.Scene {
     ctx.fillStyle = '#8B0000';
     ctx.fillRect(12, 20 + yBob, 24, 16);
 
+    // Vest outline
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(12, 20 + yBob, 24, 16);
+
     // Shirt (white)
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(14, 22 + yBob, 20, 12);
@@ -563,6 +660,11 @@ export class PreloadScene extends Phaser.Scene {
     // Pants (black)
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(12, 36 + yBob, 24, 8);
+
+    // Pants outline
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(12, 36 + yBob, 24, 8);
 
     // Legs
     ctx.fillStyle = '#1a1a1a';
@@ -763,30 +865,35 @@ export class PreloadScene extends Phaser.Scene {
     ctx.fillRect(60, 60, 8, 4);
     ctx.fillRect(64, 58, 4, 8);
 
-    // "KITCHEN" label at bottom (pixel art letters)
+    // "KITCHEN" label at top edge of door (pixel art letters)
     ctx.fillStyle = '#FFFFFF';
     // K
-    ctx.fillRect(12, 108, 2, 8);
-    ctx.fillRect(14, 111, 2, 2);
-    ctx.fillRect(16, 108, 2, 3);
-    ctx.fillRect(16, 113, 2, 3);
+    ctx.fillRect(12, 12, 2, 10);
+    ctx.fillRect(14, 17, 2, 2);
+    ctx.fillRect(16, 12, 2, 2);
+    ctx.fillRect(16, 20, 2, 2);
     // I
-    ctx.fillRect(20, 108, 2, 8);
+    ctx.fillRect(20, 12, 2, 10);
     // T
-    ctx.fillRect(24, 108, 6, 2);
-    ctx.fillRect(26, 110, 2, 6);
+    ctx.fillRect(24, 12, 6, 2);
+    ctx.fillRect(26, 14, 2, 8);
     // C
-    ctx.fillRect(32, 108, 6, 2);
-    ctx.fillRect(32, 114, 6, 2);
-    ctx.fillRect(32, 108, 2, 8);
+    ctx.fillRect(32, 12, 6, 2);
+    ctx.fillRect(32, 14, 2, 6);
+    ctx.fillRect(32, 20, 6, 2);
     // H
-    ctx.fillRect(40, 108, 2, 8);
-    ctx.fillRect(44, 108, 2, 8);
-    ctx.fillRect(42, 111, 2, 2);
+    ctx.fillRect(40, 12, 2, 10);
+    ctx.fillRect(44, 12, 2, 10);
+    ctx.fillRect(40, 17, 6, 2);
+    // E
+    ctx.fillRect(48, 12, 6, 2);
+    ctx.fillRect(48, 14, 2, 6);
+    ctx.fillRect(48, 17, 4, 2);
+    ctx.fillRect(48, 20, 6, 2);
     // N
-    ctx.fillRect(48, 108, 2, 8);
-    ctx.fillRect(52, 108, 2, 8);
-    ctx.fillRect(50, 110, 2, 4);
+    ctx.fillRect(56, 12, 2, 10);
+    ctx.fillRect(60, 12, 2, 10);
+    ctx.fillRect(56, 12, 6, 2);
   }
 
   private drawTVFrame(ctx: CanvasRenderingContext2D) {
