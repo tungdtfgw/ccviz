@@ -1,5 +1,5 @@
 import type { ServerBarState, ServerSessionState, ServerAgentState } from '@shared/state';
-import { getTeamForSession, MAX_SESSIONS, type TeamKey } from '@shared/teams';
+import { getTeamForSession, getTableIndexForTeam, MAX_SESSIONS, type TeamKey } from '@shared/teams';
 
 class BarStateManager {
   private state: ServerBarState = {
@@ -8,13 +8,17 @@ class BarStateManager {
     tableAssignments: new Map()
   };
 
-  // Find next available table (0-7)
-  private findAvailableTable(): number | null {
-    for (let i = 0; i < MAX_SESSIONS; i++) {
-      if (!this.state.tableAssignments.has(i)) {
-        return i;
-      }
+  // Find table matching the team (must match pre-rendered logo)
+  private findTableForTeam(teamKey: TeamKey): number | null {
+    const tableIndex = getTableIndexForTeam(teamKey);
+
+    // Check if this team's designated table is available
+    if (!this.state.tableAssignments.has(tableIndex)) {
+      return tableIndex;
     }
+
+    // Team's designated table is occupied - no fallback
+    console.warn(`[StateManager] Table ${tableIndex} for team ${teamKey} is occupied`);
     return null;
   }
 
@@ -23,13 +27,12 @@ class BarStateManager {
       return this.state.sessions.get(sessionId)!;
     }
 
-    const tableIndex = this.findAvailableTable();
+    const team = getTeamForSession(sessionId);
+    const tableIndex = this.findTableForTeam(team.key);
     if (tableIndex === null) {
-      console.warn('[StateManager] No available tables');
+      console.warn(`[StateManager] No available table for team ${team.name}`);
       return null;
     }
-
-    const team = getTeamForSession(sessionId);
     const session: ServerSessionState = {
       sessionId,
       teamKey: team.key,
