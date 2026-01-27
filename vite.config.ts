@@ -9,6 +9,7 @@ export default defineConfig({
       '@shared/teams': resolve(__dirname, 'src/shared/football-team-configs-and-sprite-mappings.ts'),
       '@shared/events': resolve(__dirname, 'src/shared/claude-code-event-stream-types-and-payloads.ts'),
       '@shared/state': resolve(__dirname, 'src/shared/server-session-and-agent-state-interfaces.ts'),
+      '@shared/day-night-cycle-configuration-constants': resolve(__dirname, 'src/shared/day-night-cycle-configuration-constants.ts'),
       '@shared': resolve(__dirname, 'src/shared/ccviz-shared-types-teams-events-state-barrel.ts')
     }
   },
@@ -21,7 +22,7 @@ export default defineConfig({
         changeOrigin: true
       },
       '/socket.io': {
-        target: 'http://localhost:3848',
+        target: 'http://localhost:3847',
         ws: true
       }
     }

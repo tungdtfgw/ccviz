@@ -1,0 +1,32 @@
+# Source files (use dist/ instead)
+src/client/
+
+# Development
+.claude/
+.vscode/
+.idea/
+hooks/
+plans/
+docs/
+
+# Config files
+.gitignore
+.editorconfig
+tsconfig.json
+vite.config.ts
+CLAUDE.md
+
+# Test & dev files
+*.test.*
+*.spec.*
+__tests__/
+coverage/
+
+# Docs
+*.md
+!README.md
+
+# Misc
+.DS_Store
+*.log
+*.tmp

@@ -17,10 +17,10 @@
       "@shared/teams": ["src/shared/football-team-configs-and-sprite-mappings.ts"],
       "@shared/events": ["src/shared/claude-code-event-stream-types-and-payloads.ts"],
       "@shared/state": ["src/shared/server-session-and-agent-state-interfaces.ts"],
+      "@shared/day-night-cycle-configuration-constants": ["src/shared/day-night-cycle-configuration-constants.ts"],
       "@shared/*": ["src/shared/*"],
       "@shared": ["src/shared/ccviz-shared-types-teams-events-state-barrel.ts"]
-    },
-    "types": ["bun-types"]
+    }
   },
   "include": [
     "src/**/*.ts",

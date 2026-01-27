@@ -6,26 +6,55 @@
   "bin": {
     "ccviz": "./scripts/cli.cjs"
   },
+  "files": [
+    "scripts/",
+    "public/",
+    "dist/",
+    "src/server/",
+    "src/shared/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tungdtfgw/ccviz.git"
+  },
+  "homepage": "https://github.com/tungdtfgw/ccviz#readme",
+  "bugs": {
+    "url": "https://github.com/tungdtfgw/ccviz/issues"
+  },
+  "keywords": [
+    "claude-code",
+    "visualization",
+    "phaser",
+    "cli",
+    "ai-coding",
+    "developer-tools"
+  ],
+  "author": "tungdt",
+  "license": "MIT",
   "scripts": {
     "install-hooks": "node scripts/install.cjs",
     "uninstall-hooks": "node scripts/uninstall.cjs",
-    "dev": "concurrently \"bun run dev:server\" \"bun run dev:client\"",
-    "dev:server": "bun --watch src/server/index.ts",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "tsx watch src/server/index.ts",
     "dev:client": "vite",
     "build": "vite build",
-    "build:server": "bun build src/server/index.ts --outdir dist/server --target bun",
+    "build:server": "tsc --project tsconfig.server.json",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/server/index.js"
   },
   "dependencies": {
     "eventemitter3": "^5.0.1",
+    "express": "^5.2.1",
     "phaser": "^3.80.1",
     "socket.io": "^4.7.4",
     "socket.io-client": "^4.7.4"
   },
   "devDependencies": {
-    "@types/bun": "^1.1.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.10",
     "concurrently": "^8.2.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.4.2",
     "vite": "^5.2.0"
   }
