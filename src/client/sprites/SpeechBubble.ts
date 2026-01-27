@@ -2,6 +2,7 @@
 // Shows task description on spawn, result on completion
 
 import Phaser from 'phaser';
+import { UnicodeGenerator } from '../utils/unicode-generator';
 
 interface BubbleConfig {
   maxWidth?: number;
@@ -53,13 +54,32 @@ export class SpeechBubble extends Phaser.GameObjects.Container {
     this.setDepth(1000); // Above all sprites
   }
 
-  setText(text: string, teamColor?: string) {
+  /**
+   * Set speech bubble text content
+   * @param text - Text to display (or empty for alien mode)
+   * @param teamColor - Optional team color override
+   * @param isAlien - Generate alien Unicode text (Phase 4)
+   */
+  setText(text: string, teamColor?: string, isAlien = false) {
     if (teamColor) {
       this.teamColor = Phaser.Display.Color.HexStringToColor(teamColor).color;
     }
 
+    let displayText = text;
+
+    // Generate alien Unicode text (Phase 4)
+    if (isAlien) {
+      displayText = UnicodeGenerator.generatePhrase(2);
+      this.textObj.setFontFamily('Noto Sans Symbols 2, monospace');
+      this.textObj.setFontSize(14); // Slightly larger for dense Unicode
+    } else {
+      // Reset to normal font
+      this.textObj.setFontFamily('monospace');
+      this.textObj.setFontSize(this.config.fontSize);
+    }
+
     // Split into sentences, truncate long ones
-    this.sentences = text
+    this.sentences = displayText
       .split(/(?<=\.)\s+/)
       .map(s => s.slice(0, 80))
       .filter(s => s.length > 0);

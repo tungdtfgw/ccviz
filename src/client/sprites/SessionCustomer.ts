@@ -5,6 +5,7 @@
 import Phaser from 'phaser';
 import { TEAMS, type TeamKey } from '@shared/teams';
 import { SpeechBubble } from './SpeechBubble';
+import { getContrastingTextColor } from '../utils/color-contrast';
 
 type CustomerState = 'entering' | 'seated' | 'drinking' | 'eating' | 'leaving';
 
@@ -30,6 +31,7 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
   public tableIndex: number;
   public seatX: number;
   public seatY: number;
+  private tableX: number; // Table center X for smart beer positioning
 
   constructor(
     scene: Phaser.Scene,
@@ -39,7 +41,8 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
     entranceX: number,
     entranceY: number,
     seatX: number,
-    seatY: number
+    seatY: number,
+    tableX: number
   ) {
     super(scene, entranceX, entranceY);
 
@@ -48,6 +51,7 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
     this.tableIndex = tableIndex;
     this.seatX = seatX;
     this.seatY = seatY;
+    this.tableX = tableX;
 
     const team = TEAMS.find(t => t.key === teamKey)!;
     const spriteKey = team.spriteKey;
@@ -60,7 +64,7 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
     const shortId = sessionId.slice(-6);
     this.nameTag = scene.add.text(0, -58, shortId, {
       fontSize: '10px',
-      color: '#ffffff',
+      color: getContrastingTextColor(team.primary),
       fontFamily: 'monospace',
       backgroundColor: team.primary,
       padding: { x: 3, y: 1 }
@@ -70,8 +74,12 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
     // Team badge - hidden (not used anymore)
     this.teamBadge = scene.add.graphics();
 
-    // Beer tower (context indicator) - placed on table, HIDDEN until waiter delivers
-    this.beerTower = scene.add.sprite(30, -10, 'beer-tower');
+    // Beer tower (context indicator) - smart positioning opposite customer side
+    // Customer on right → tower on left, customer on left → tower on right
+    const isOnRightSide = this.seatX > this.tableX;
+    const towerOffsetX = isOnRightSide ? -35 : 35;
+
+    this.beerTower = scene.add.sprite(towerOffsetX, -10, 'beer-tower');
     this.beerTower.setOrigin(0.5, 1);
     this.beerTower.setScale(0.8);
     this.beerTower.setFrame(0); // Full beer
@@ -172,6 +180,13 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
     this.currentState = 'entering';
     this.sprite.play(`fan-${this.teamKey}-walk`);
 
+    // Play random footstep sound (Phase 2)
+    const footstepKey = `footstep-${Phaser.Math.Between(1, 3)}`;
+    const barScene = this.scene as any;
+    if (barScene.audioManager) {
+      barScene.audioManager.playSFX(footstepKey, 0.3);
+    }
+
     // Flip sprite based on direction
     this.sprite.setFlipX(seatX < this.x);
 
@@ -240,9 +255,13 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
     });
   }
 
-  // Speak a message via speech bubble (for MCP orders)
-  speak(message: string) {
-    this.speechBubble.setText(message);
+  /**
+   * Speak a message via speech bubble (for MCP orders)
+   * @param message - Text to display
+   * @param isAlien - Generate alien Unicode text (Phase 4)
+   */
+  speak(message: string, isAlien = false) {
+    this.speechBubble.setText(message, undefined, isAlien);
   }
 
   // Add food sprite to customer's table (from MCP chef delivery)
@@ -259,7 +278,7 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
 
     const foodSprite = this.scene.add.sprite(this.seatX + offsetX, this.seatY + offsetY, 'food');
     foodSprite.setOrigin(0.5, 1);
-    foodSprite.setScale(1.2);
+    foodSprite.setScale(1.8); // Enlarged for better visibility
     foodSprite.setFrame(frame);
     foodSprite.setDepth(this.seatY + 2);
 
@@ -424,47 +443,51 @@ export class SessionCustomer extends Phaser.GameObjects.Container {
     if (this.currentState === 'leaving') return;
 
     this.currentState = 'leaving';
-    this.sprite.play(`fan-${this.teamKey}-walk`);
-    this.sprite.setFlipX(exitX > this.x);
 
-    // Clear any food sprites
-    this.clearAllFoods();
+    // Delay 1s for farewell speech bubbles (Phase 5)
+    this.scene.time.delayedCall(1000, () => {
+      this.sprite.play(`fan-${this.teamKey}-walk`);
+      this.sprite.setFlipX(exitX > this.x);
 
-    // Hide speech bubble
-    this.speechBubble?.hide();
+      // Clear any food sprites
+      this.clearAllFoods();
 
-    // Detach beer tower from container and reparent to scene (if visible)
-    let orphanBeerTower: Phaser.GameObjects.Sprite | null = null;
-    if (this.beerTower.visible) {
-      // Calculate world position (container pos + local offset)
-      const worldX = this.x + 30; // beer tower local offset X
-      const worldY = this.y - 10; // beer tower local offset Y
+      // Hide speech bubble
+      this.speechBubble?.hide();
 
-      // Remove from container
-      this.remove(this.beerTower);
+      // Detach beer tower from container and reparent to scene (if visible)
+      let orphanBeerTower: Phaser.GameObjects.Sprite | null = null;
+      if (this.beerTower.visible) {
+        // Calculate world position (container pos + local offset)
+        const worldX = this.x + 30; // beer tower local offset X
+        const worldY = this.y - 10; // beer tower local offset Y
 
-      // Reparent to scene at world position
-      this.beerTower.setPosition(worldX, worldY);
-      this.scene.add.existing(this.beerTower);
-      this.beerTower.setDepth(this.seatY + 10);
+        // Remove from container
+        this.remove(this.beerTower);
 
-      orphanBeerTower = this.beerTower;
-    }
+        // Reparent to scene at world position
+        this.beerTower.setPosition(worldX, worldY);
+        this.scene.add.existing(this.beerTower);
+        this.beerTower.setDepth(this.seatY + 10);
 
-    // Hide context labels
-    this.contextLabel.setVisible(false);
-    this.tokensLabel.setVisible(false);
-
-    this.scene.tweens.add({
-      targets: this,
-      x: exitX,
-      y: exitY,
-      duration: 1200,
-      ease: 'Sine.easeIn',
-      onComplete: () => {
-        this.destroy();
-        onComplete(orphanBeerTower, this.seatX, this.seatY);
+        orphanBeerTower = this.beerTower;
       }
+
+      // Hide context labels
+      this.contextLabel.setVisible(false);
+      this.tokensLabel.setVisible(false);
+
+      this.scene.tweens.add({
+        targets: this,
+        x: exitX,
+        y: exitY,
+        duration: 1200,
+        ease: 'Sine.easeIn',
+        onComplete: () => {
+          this.destroy();
+          onComplete(orphanBeerTower, this.seatX, this.seatY);
+        }
+      });
     });
   }
 
