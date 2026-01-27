@@ -11,6 +11,10 @@ const config: Phaser.Types.Core.GameConfig = {
   backgroundColor: '#1a1a2e',
   pixelArt: true,
   scene: [PreloadScene, BarScene, HUDScene],
+  audio: {
+    disableWebAudio: false,
+    noAudio: false
+  },
   physics: {
     default: 'arcade',
     arcade: {
@@ -25,6 +29,15 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 const game = new Phaser.Game(config);
+
+// Prevent game from pausing when browser tab loses focus (keeps audio playing)
+game.events.on('blur', () => {
+  game.sound.pauseOnBlur = false;
+});
+
+game.events.on('focus', () => {
+  game.sound.pauseOnBlur = false;
+});
 
 // Hot module replacement support
 if (import.meta.hot) {

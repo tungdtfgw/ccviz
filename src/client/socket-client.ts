@@ -8,7 +8,7 @@ class SocketClient {
   private listeners: Map<string, Set<EventCallback>> = new Map();
   private serverUrl: string;
 
-  constructor(url = 'http://localhost:3848') {
+  constructor(url = 'http://localhost:3847') {
     this.serverUrl = url;
   }
 
