@@ -37,6 +37,12 @@ export const TEAMS_MAP: Record<TeamKey, TeamConfig> = TEAMS.reduce(
   {} as Record<TeamKey, TeamConfig>
 );
 
+// Table-to-team mapping (matches client-side defaultTableTeams in BarScene)
+export const TABLE_TEAM_MAPPING: TeamKey[] = [
+  'mu', 'chelsea', 'arsenal', 'real-madrid',
+  'barcelona', 'juventus', 'ac-milan', 'liverpool'
+];
+
 export function getTeamForSession(sessionId: string): TeamConfig {
   let hash = 0;
   for (let i = 0; i < sessionId.length; i++) {
@@ -45,4 +51,9 @@ export function getTeamForSession(sessionId: string): TeamConfig {
   }
   const index = Math.abs(hash) % TEAMS.length;
   return TEAMS[index];
+}
+
+// Get table index for a given team key
+export function getTableIndexForTeam(teamKey: TeamKey): number {
+  return TABLE_TEAM_MAPPING.indexOf(teamKey);
 }
