@@ -387,6 +387,39 @@ export class Waiter extends Phaser.GameObjects.Container {
     return this.isProcessing;
   }
 
+  /**
+   * Walk to light switch position and execute callback
+   * Used for day/night light toggle animation
+   */
+  async walkToSwitch(switchX: number, switchY: number, onArrive: () => void): Promise<void> {
+    // Don't interrupt if already processing deliveries
+    if (this.isProcessing) {
+      // Queue callback for later
+      this.scene.time.delayedCall(2000, () => this.walkToSwitch(switchX, switchY, onArrive));
+      return;
+    }
+
+    this.isProcessing = true;
+
+    // Walk to switch
+    await this.walkTo(switchX, switchY);
+
+    // Execute callback (toggle lights, speak)
+    onArrive();
+
+    // Small pause at switch
+    await this.delay(800);
+
+    // Walk back to home position
+    await this.walkTo(this.homePosition.x, this.homePosition.y);
+
+    this.playIdle();
+    this.isProcessing = false;
+
+    // Resume any queued deliveries
+    this.processQueues();
+  }
+
   getQueueLength(): number {
     return this.deliveryQueue.length + this.foodQueue.length;
   }

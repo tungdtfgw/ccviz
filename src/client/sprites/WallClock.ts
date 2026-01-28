@@ -43,8 +43,8 @@ export class WallClock extends Phaser.GameObjects.Container {
 
     scene.add.existing(this);
 
-    // Initialize to system time
-    this.initializeToSystemTime();
+    // Don't initialize here - let DayNightController sync via update()
+    // Clock will show correct time after first update() call
   }
 
   /**
@@ -107,18 +107,19 @@ export class WallClock extends Phaser.GameObjects.Container {
     const totalHours = cycleProgress * 24; // 0-24 hours
 
     // Hour hand: 360° per 12 hours (30° per hour)
-    const hourAngle = ((totalHours % 12) / 12) * 360 - 90; // -90° offset (12 o'clock at top)
+    // Hands are drawn pointing UP (12h), so angle 0 = 12h, angle 90 = 3h
+    const hourAngle = ((totalHours % 12) / 12) * 360;
 
     // Minute hand: 360° per 60 minutes (6° per minute)
     const minutes = (totalHours * 60) % 60;
-    const minuteAngle = (minutes / 60) * 360 - 90; // -90° offset
+    const minuteAngle = (minutes / 60) * 360;
 
     this.hourHand.angle = hourAngle;
     this.minuteHand.angle = minuteAngle;
   }
 
   /**
-   * Initialize clock hands to current system time
+   * Initialize clock hands to current system time (unused - kept for reference)
    */
   initializeToSystemTime(): void {
     const now = new Date();
@@ -126,10 +127,10 @@ export class WallClock extends Phaser.GameObjects.Container {
     const minutes = now.getMinutes(); // 0-59
 
     // Hour hand angle (include minute offset for smooth hour movement)
-    const hourAngle = (hours / 12) * 360 + (minutes / 60) * 30 - 90;
+    const hourAngle = (hours / 12) * 360 + (minutes / 60) * 30;
 
     // Minute hand angle
-    const minuteAngle = (minutes / 60) * 360 - 90;
+    const minuteAngle = (minutes / 60) * 360;
 
     this.hourHand.angle = hourAngle;
     this.minuteHand.angle = minuteAngle;

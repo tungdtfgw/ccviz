@@ -14,6 +14,7 @@ import { SpeakerControl } from '../sprites/SpeakerControl';
 import { WallClock } from '../sprites/WallClock';
 import { AudioManager } from '../managers/audio-manager';
 import { DayNightController, type PhaseData } from '../managers/day-night-controller';
+import { LIGHTING_CONFIG } from '@shared/day-night-cycle-configuration-constants';
 import type { BarEvent, SessionStartPayload, SubagentPayload, ContextPayload } from '@shared/events';
 import type { TeamKey } from '@shared/teams';
 import { TEAMS } from '@shared/teams';
@@ -100,9 +101,12 @@ export class BarScene extends Phaser.Scene {
   private audioManager!: AudioManager;
   private dayNightController!: DayNightController;
 
-  // Lighting system (Phase 3)
-  private ambientOverlay!: Phaser.GameObjects.Graphics;
-  private lightSprites: Phaser.GameObjects.Graphics[] = [];
+  // Lighting system (Day/Night simulation)
+  private darknessOverlay!: Phaser.GameObjects.Graphics; // Black overlay for dusk
+  private neonLightOverlay!: Phaser.GameObjects.Graphics; // White neon overlay for night
+  private sunlightOverlay!: Phaser.GameObjects.Graphics; // Warm yellow overlay for daytime
+  private lightSwitchPosition = { x: 25, y: 400 }; // Light switch on left wall (close to wall)
+  private lightSwitchGraphics!: Phaser.GameObjects.Graphics; // Visual switch with ON/OFF state
 
   // Track MCP state for customer food
   private currentMcpSession: string | null = null;
@@ -834,65 +838,122 @@ export class BarScene extends Phaser.Scene {
   }
 
   /**
-   * Create lighting overlay and light sprites (Phase 3)
+   * Create lighting overlays for day/night simulation
+   * - Black overlay: Fades in during dusk (16h-20h)
+   * - Neon overlay: Visible at night (20h-7h) when lights are on
    */
   private createLightingOverlay() {
-    // Ambient overlay - covers entire scene for day/night tinting
-    this.ambientOverlay = this.add.graphics();
-    this.ambientOverlay.setDepth(1000); // Above everything
-    this.ambientOverlay.setAlpha(0.3); // Subtle tint effect
-    this.ambientOverlay.setBlendMode(Phaser.BlendModes.MULTIPLY);
+    // Darkness overlay - black layer for dusk transition
+    this.darknessOverlay = this.add.graphics();
+    this.darknessOverlay.setDepth(2000); // Above everything including HUD
+    this.darknessOverlay.setAlpha(0); // Start invisible (daytime)
+    this.darknessOverlay.fillStyle(LIGHTING_CONFIG.darkOverlayColor, 1);
+    this.darknessOverlay.fillRect(0, 0, 800, 600);
 
-    // Indoor light sprites (warm glow near decorations)
-    // Light 1: Above left photo frames
-    const light1 = this.add.graphics();
-    light1.fillStyle(0xFFDC96, 0); // Warm amber, start invisible
-    light1.fillCircle(170, 130, 60); // Larger radius for soft glow
-    light1.setDepth(5);
-    light1.setBlendMode(Phaser.BlendModes.ADD); // Additive blending
-    this.lightSprites.push(light1);
+    // Neon light overlay - white/blue tint for night illumination
+    this.neonLightOverlay = this.add.graphics();
+    this.neonLightOverlay.setDepth(1999); // Just below darkness overlay
+    this.neonLightOverlay.setAlpha(0); // Start invisible
+    this.neonLightOverlay.setBlendMode(Phaser.BlendModes.ADD); // Additive for glow effect
+    this.neonLightOverlay.fillStyle(LIGHTING_CONFIG.neonLightColor, 1);
+    this.neonLightOverlay.fillRect(0, 0, 800, 600);
 
-    // Light 2: Above TV/speaker area
-    const light2 = this.add.graphics();
-    light2.fillStyle(0xFFDC96, 0);
-    light2.fillCircle(400, 100, 80);
-    light2.setDepth(5);
-    light2.setBlendMode(Phaser.BlendModes.ADD);
-    this.lightSprites.push(light2);
+    // Sunlight overlay - warm yellow for daytime (peaks at noon)
+    this.sunlightOverlay = this.add.graphics();
+    this.sunlightOverlay.setDepth(1998); // Below neon overlay
+    this.sunlightOverlay.setAlpha(0); // Start invisible
+    this.sunlightOverlay.setBlendMode(Phaser.BlendModes.ADD); // Additive for warm glow
+    this.sunlightOverlay.fillStyle(LIGHTING_CONFIG.sunlightColor, 1);
+    this.sunlightOverlay.fillRect(0, 0, 800, 600);
 
-    // Light 3: Above right trophies
-    const light3 = this.add.graphics();
-    light3.fillStyle(0xFFDC96, 0);
-    light3.fillCircle(550, 180, 60);
-    light3.setDepth(5);
-    light3.setBlendMode(Phaser.BlendModes.ADD);
-    this.lightSprites.push(light3);
+    // Light switch with ON/OFF visual state
+    this.lightSwitchGraphics = this.add.graphics();
+    this.lightSwitchGraphics.setDepth(100);
+    this.drawLightSwitch(this.dayNightController.areLightsOn());
   }
 
   /**
-   * Apply lighting from day/night cycle (Phase 3)
-   * @param data - Current phase data with color and intensity
+   * Draw light switch with ON/OFF visual state
+   * ON: lever up, green indicator
+   * OFF: lever down, red indicator
+   */
+  private drawLightSwitch(isOn: boolean): void {
+    const x = this.lightSwitchPosition.x;
+    const y = this.lightSwitchPosition.y;
+
+    this.lightSwitchGraphics.clear();
+
+    // Switch plate (dark gray)
+    this.lightSwitchGraphics.fillStyle(0x333333, 1);
+    this.lightSwitchGraphics.fillRect(x - 8, y - 15, 16, 30);
+
+    // Switch border
+    this.lightSwitchGraphics.lineStyle(2, 0x555555, 1);
+    this.lightSwitchGraphics.strokeRect(x - 8, y - 15, 16, 30);
+
+    // Lever slot
+    this.lightSwitchGraphics.fillStyle(0x222222, 1);
+    this.lightSwitchGraphics.fillRect(x - 4, y - 10, 8, 20);
+
+    // Lever position based on state
+    if (isOn) {
+      // Lever UP (green)
+      this.lightSwitchGraphics.fillStyle(0x44FF44, 1);
+      this.lightSwitchGraphics.fillRect(x - 3, y - 9, 6, 8);
+    } else {
+      // Lever DOWN (red)
+      this.lightSwitchGraphics.fillStyle(0xFF4444, 1);
+      this.lightSwitchGraphics.fillRect(x - 3, y + 1, 6, 8);
+    }
+  }
+
+  /**
+   * Apply lighting from day/night cycle
+   * @param data - Current phase data with darkness, neon, and sunlight values
    */
   private applyLighting(data: PhaseData): void {
-    // Update ambient overlay color
-    const color = data.ambientColor.color;
-    this.ambientOverlay.clear();
-    this.ambientOverlay.fillStyle(color, 0.3);
-    this.ambientOverlay.fillRect(0, 0, 800, 600);
+    // Update darkness overlay (visible during dusk, fades in from 0 to max)
+    this.darknessOverlay.setAlpha(data.darknessOpacity);
 
-    // Update indoor light intensity (alpha)
-    this.lightSprites.forEach(light => {
-      light.clear();
-      light.fillStyle(0xFFDC96, data.lightIntensity * 0.6); // Max 60% alpha
-      // Redraw at original positions
-      if (light === this.lightSprites[0]) {
-        light.fillCircle(170, 130, 60);
-      } else if (light === this.lightSprites[1]) {
-        light.fillCircle(400, 100, 80);
-      } else if (light === this.lightSprites[2]) {
-        light.fillCircle(550, 180, 60);
+    // Update neon light overlay (visible at night when lights are on)
+    if (data.neonLightOn) {
+      this.neonLightOverlay.setAlpha(data.neonOpacity);
+    } else {
+      this.neonLightOverlay.setAlpha(0);
+    }
+
+    // Update sunlight overlay (visible during day, peaks at noon)
+    this.sunlightOverlay.setAlpha(data.sunlightOpacity);
+
+    // Handle waiter starting to walk to switch (early trigger)
+    if (data.shouldStartWalking) {
+      this.triggerWaiterWalkToSwitch(data.shouldStartWalking === 'on');
+    }
+
+    // Update switch visual to match light state
+    this.drawLightSwitch(data.neonLightOn);
+  }
+
+  /**
+   * Trigger waiter to walk to light switch and toggle lights when arriving
+   * Waiter starts walking BEFORE the toggle time, arrives just in time
+   * @param turnOn - true to turn on, false to turn off
+   */
+  private triggerWaiterWalkToSwitch(turnOn: boolean): void {
+    console.log(`[BarScene] Waiter starting walk to switch (will ${turnOn ? 'turn ON' : 'turn OFF'})`);
+
+    // Waiter walks to light switch, then toggles upon arrival
+    this.waiter.walkToSwitch(
+      this.lightSwitchPosition.x + 15, // Stand slightly right of switch
+      this.lightSwitchPosition.y,
+      () => {
+        // Arrived at switch - NOW toggle the lights
+        const message = turnOn ? 'Lights on!' : 'Rise and shine!';
+        this.waiter.speak(message);
+        this.dayNightController.setLightsOn(turnOn);
+        this.drawLightSwitch(turnOn);
       }
-    });
+    );
   }
 
   // Get random food type for MCP delivery

@@ -1,64 +1,87 @@
 import Phaser from 'phaser';
-import { DAY_NIGHT_DURATION_MS, PHASE_DURATIONS } from '@shared/day-night-cycle-configuration-constants';
+import {
+  DAY_NIGHT_DURATION_MS,
+  TIME_BOUNDARIES,
+  LIGHTING_CONFIG,
+  getPhaseFromProgress,
+  progressToHour,
+  type DayPhase
+} from '@shared/day-night-cycle-configuration-constants';
 
 /**
  * PhaseData - Current state of the day/night cycle
  */
 export interface PhaseData {
-  name: 'dawn' | 'day' | 'dusk' | 'night';
-  progress: number; // 0-1 progress within current phase
-  ambientColor: Phaser.Display.Color; // Tint color for scene
-  lightIntensity: number; // 0-1 for indoor lights (lamps, etc.)
+  phase: DayPhase;
+  hour: number; // Current simulated hour (0-24)
+  progress: number; // 0-1 progress within cycle
+  darknessOpacity: number; // 0-1 opacity for black overlay
+  neonLightOn: boolean; // Whether neon lights should be visible
+  neonOpacity: number; // 0-1 opacity for neon light overlay
+  sunlightOpacity: number; // 0-1 opacity for sunlight overlay (peaks at noon)
+  shouldStartWalking: 'on' | 'off' | null; // Trigger for waiter to START walking (early)
 }
 
 /**
- * Ambient color palette for each phase
- */
-const PHASE_COLORS = {
-  dawn: new Phaser.Display.Color(255, 200, 150),  // Warm orange sunrise
-  day: new Phaser.Display.Color(255, 255, 255),   // Bright white midday
-  dusk: new Phaser.Display.Color(200, 150, 180),  // Purple-pink sunset
-  night: new Phaser.Display.Color(40, 60, 100)    // Deep blue moonlight
-};
-
-/**
- * Light activation thresholds
- * - Lights fade in during last 30% of dusk
- * - Lights stay on during night
- * - Lights fade out during first 30% of dawn
- */
-const LIGHT_ON_THRESHOLD = 0.7; // 70% through dusk → start fade in
-
-/**
- * DayNightController - Manages time-based lighting cycle
+ * DayNightController - Manages realistic day/night lighting cycle
  *
- * Features:
- * - 4-phase cycle (dawn/day/dusk/night) with configurable duration
- * - Smooth color interpolation between phases
- * - Indoor light control (fade in/out based on ambient light)
- * - Continuous looping
+ * Timeline (24h mapped to cycle duration):
+ * - 7h-16h (Day): No overlay, natural bright light
+ * - 16h-20h (Dusk): Black overlay gradually increases opacity
+ * - 20h-7h (Night): Neon lights on, black overlay hidden
  *
- * Usage:
- *   const controller = new DayNightController(scene);
- *   // In scene.update():
- *   const phaseData = controller.update(delta);
- *   applyLighting(phaseData);
+ * Waiter interaction:
+ * - At 20h: Waiter walks to switch, turns on lights
+ * - At 7h: Waiter walks to switch, turns off lights
  */
 export class DayNightController {
   private scene: Phaser.Scene;
   private cycleDuration: number;
   private elapsed: number = 0;
+  private lastPhase: DayPhase = 'day';
+  private lightsOn: boolean = false;
+  private walkingTriggered: boolean = false; // Waiter started walking
 
   constructor(scene: Phaser.Scene, durationMs = DAY_NIGHT_DURATION_MS) {
     this.scene = scene;
     this.cycleDuration = durationMs;
-    console.log(`[DayNightController] Initialized with ${durationMs}ms cycle (${durationMs / 1000}s)`);
+
+    // Initialize to current real-world time
+    this.initializeToRealTime();
+
+    const currentHour = progressToHour(this.elapsed / durationMs);
+    console.log(`[DayNightController] Initialized: ${durationMs}ms cycle, starting at ${currentHour.toFixed(1)}h (real time)`);
+  }
+
+  /**
+   * Initialize elapsed time based on current real-world time
+   * E.g., if it's 2:30 AM real time, bar starts at 2:30 AM simulated
+   */
+  private initializeToRealTime(): void {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+
+    // Convert current time to progress (0-1)
+    // 24 hours = 1.0 progress
+    const totalHours = hours + minutes / 60 + seconds / 3600;
+    const progress = totalHours / 24;
+
+    this.elapsed = progress * this.cycleDuration;
+
+    // Set initial light state based on current time
+    const phase = getPhaseFromProgress(progress);
+    this.lastPhase = phase;
+    this.lightsOn = phase === 'night';
+
+    console.log(`[DayNightController] Real time: ${hours}:${minutes.toString().padStart(2, '0')}, phase: ${phase}, lights: ${this.lightsOn ? 'ON' : 'OFF'}`);
   }
 
   /**
    * Update cycle progress and return current phase data
    * @param delta - Time elapsed since last frame (ms)
-   * @returns Current phase data with color and light intensity
+   * @returns Current phase data with lighting values
    */
   update(delta: number): PhaseData {
     this.elapsed += delta;
@@ -66,121 +89,113 @@ export class DayNightController {
     // Loop when cycle completes
     if (this.elapsed >= this.cycleDuration) {
       this.elapsed -= this.cycleDuration;
+      this.walkingTriggered = false; // Reset trigger for new cycle
     }
 
-    const progress = this.elapsed / this.cycleDuration; // 0-1
-    return this.calculatePhase(progress);
+    const progress = this.elapsed / this.cycleDuration;
+    return this.calculatePhaseData(progress);
   }
 
   /**
-   * Calculate current phase based on cycle progress
-   * @param progress - Overall cycle progress (0-1)
-   * @returns Phase data with interpolated colors and light intensity
+   * Calculate current phase data based on cycle progress
    */
-  private calculatePhase(progress: number): PhaseData {
-    // Determine current phase by comparing cumulative durations
-    let cumulativeDuration = 0;
-    let currentPhase: keyof typeof PHASE_DURATIONS = 'dawn';
+  private calculatePhaseData(progress: number): PhaseData {
+    const phase = getPhaseFromProgress(progress);
+    const hour = progressToHour(progress);
 
-    for (const [phase, duration] of Object.entries(PHASE_DURATIONS)) {
-      cumulativeDuration += duration;
-      if (progress < cumulativeDuration) {
-        currentPhase = phase as keyof typeof PHASE_DURATIONS;
+    let darknessOpacity = 0;
+    let neonLightOn = this.lightsOn;
+    let neonOpacity = 0;
+    let sunlightOpacity = 0;
+    let shouldStartWalking: 'on' | 'off' | null = null;
+
+    // Noon progress point (12h = 0.5)
+    const noonProgress = 12 / 24;
+
+    // Phase-specific lighting logic
+    switch (phase) {
+      case 'day':
+        // Day: Sunlight overlay peaks at noon
+        darknessOpacity = 0;
+
+        // Keep neon on until waiter actually turns it off
+        neonOpacity = this.lightsOn ? LIGHTING_CONFIG.neonLightOpacity : 0;
+
+        // Sunlight curve: 0% at 7h → 20% at 12h → 0% at 16h
+        // Only show sunlight after lights are off
+        if (!this.lightsOn) {
+          if (progress < noonProgress) {
+            // Morning: 7h → 12h, increasing
+            const morningDuration = noonProgress - TIME_BOUNDARIES.dayStart;
+            const morningProgress = (progress - TIME_BOUNDARIES.dayStart) / morningDuration;
+            sunlightOpacity = morningProgress * LIGHTING_CONFIG.maxSunlightOpacity;
+          } else {
+            // Afternoon: 12h → 16h, decreasing
+            const afternoonDuration = TIME_BOUNDARIES.duskStart - noonProgress;
+            const afternoonProgress = (progress - noonProgress) / afternoonDuration;
+            sunlightOpacity = (1 - afternoonProgress) * LIGHTING_CONFIG.maxSunlightOpacity;
+          }
+        }
+
+        // At 7h (day start): trigger waiter to walk and turn OFF lights
+        if (this.lastPhase === 'night' && this.lightsOn && !this.walkingTriggered) {
+          shouldStartWalking = 'off';
+          this.walkingTriggered = true;
+        }
         break;
-      }
+
+      case 'dusk':
+        // Dusk (16h-20h): Black overlay fades in gradually
+        const duskDuration = TIME_BOUNDARIES.nightStart - TIME_BOUNDARIES.duskStart;
+        const duskProgress = (progress - TIME_BOUNDARIES.duskStart) / duskDuration;
+        darknessOpacity = duskProgress * LIGHTING_CONFIG.maxDarknessOpacity;
+        neonOpacity = 0;
+        sunlightOpacity = 0;
+        break;
+
+      case 'night':
+        // Night (20h-7h): Neon lights on when waiter has toggled
+        // Keep darkness during transition until waiter reaches switch
+        darknessOpacity = this.lightsOn ? 0 : LIGHTING_CONFIG.maxDarknessOpacity;
+        neonOpacity = this.lightsOn ? LIGHTING_CONFIG.neonLightOpacity : 0;
+        sunlightOpacity = 0;
+
+        // At 20h (night start): trigger waiter to walk and turn ON lights
+        if (this.lastPhase === 'dusk' && !this.lightsOn && !this.walkingTriggered) {
+          shouldStartWalking = 'on';
+          this.walkingTriggered = true;
+        }
+        break;
     }
 
-    // Calculate progress within current phase (0-1)
-    const phases = Object.keys(PHASE_DURATIONS) as Array<keyof typeof PHASE_DURATIONS>;
-    const phaseStart = phases
-      .slice(0, phases.indexOf(currentPhase))
-      .reduce((sum, p) => sum + PHASE_DURATIONS[p], 0);
-
-    const phaseDuration = PHASE_DURATIONS[currentPhase];
-    const phaseProgress = (progress - phaseStart) / phaseDuration;
-
-    // Interpolate ambient color
-    const ambientColor = this.interpolateColor(currentPhase, phaseProgress);
-
-    // Calculate light intensity (indoor lights)
-    const lightIntensity = this.calculateLightIntensity(currentPhase, phaseProgress);
+    // Track phase transition and reset walking trigger
+    if (this.lastPhase !== phase) {
+      this.walkingTriggered = false;
+    }
+    this.lastPhase = phase;
 
     return {
-      name: currentPhase,
-      progress: phaseProgress,
-      ambientColor,
-      lightIntensity
+      phase,
+      hour,
+      progress,
+      darknessOpacity,
+      neonLightOn,
+      neonOpacity,
+      sunlightOpacity,
+      shouldStartWalking
     };
   }
 
   /**
-   * Interpolate color between current phase and next phase
-   * Uses smooth transition during last 20% of each phase
-   * @param phase - Current phase name
-   * @param progress - Progress within phase (0-1)
-   * @returns Interpolated color
+   * Manually toggle lights (called after waiter animation completes)
    */
-  private interpolateColor(
-    phase: keyof typeof PHASE_COLORS,
-    progress: number
-  ): Phaser.Display.Color {
-    const currentColor = PHASE_COLORS[phase];
-
-    // Determine next phase for smooth transition
-    const phases = Object.keys(PHASE_COLORS) as Array<keyof typeof PHASE_COLORS>;
-    const currentIndex = phases.indexOf(phase);
-    const nextIndex = (currentIndex + 1) % phases.length;
-    const nextColor = PHASE_COLORS[phases[nextIndex]];
-
-    // Interpolate during last 20% of phase (smooth transition)
-    if (progress > 0.8) {
-      const t = (progress - 0.8) / 0.2; // 0-1 in transition zone
-      const interpolated = Phaser.Display.Color.Interpolate.ColorWithColor(
-        currentColor,
-        nextColor,
-        100,
-        t * 100
-      );
-      return new Phaser.Display.Color(interpolated.r, interpolated.g, interpolated.b);
-    }
-
-    return currentColor.clone();
+  setLightsOn(on: boolean): void {
+    this.lightsOn = on;
+    console.log(`[DayNightController] Lights ${on ? 'ON' : 'OFF'}`);
   }
 
   /**
-   * Calculate indoor light intensity based on phase and progress
-   * - Lights off during day
-   * - Fade in during dusk (last 30%)
-   * - Full on during night
-   * - Fade out during dawn (first 30%)
-   * @param phase - Current phase name
-   * @param progress - Progress within phase (0-1)
-   * @returns Light intensity (0-1)
-   */
-  private calculateLightIntensity(
-    phase: keyof typeof PHASE_DURATIONS,
-    progress: number
-  ): number {
-    if (phase === 'night') {
-      // Full light intensity during night
-      return 1;
-    } else if (phase === 'dusk' && progress > LIGHT_ON_THRESHOLD) {
-      // Fade in during last 30% of dusk
-      const fadeRange = 1 - LIGHT_ON_THRESHOLD;
-      return (progress - LIGHT_ON_THRESHOLD) / fadeRange;
-    } else if (phase === 'dawn' && progress < 0.3) {
-      // Fade out during first 30% of dawn
-      return 1 - (progress / 0.3);
-    } else if (phase === 'day') {
-      // Lights off during day
-      return 0;
-    }
-
-    return 0;
-  }
-
-  /**
-   * Get current elapsed time in cycle (for debugging)
+   * Get current elapsed time in cycle (for wall clock sync)
    */
   getElapsed(): number {
     return this.elapsed;
@@ -194,9 +209,19 @@ export class DayNightController {
   }
 
   /**
-   * Reset cycle to beginning
+   * Reset cycle to day start (7h)
    */
   reset(): void {
-    this.elapsed = 0;
+    this.elapsed = TIME_BOUNDARIES.dayStart * this.cycleDuration;
+    this.lightsOn = false;
+    this.walkingTriggered = false;
+    this.lastPhase = 'day';
+  }
+
+  /**
+   * Check if lights are currently on
+   */
+  areLightsOn(): boolean {
+    return this.lightsOn;
   }
 }
