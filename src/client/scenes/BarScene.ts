@@ -57,8 +57,8 @@ export class BarScene extends Phaser.Scene {
       { x: 600, y: 450 }
     ],
     // Kitchen door replaces fireplace
-    kitchen: { x: 700, y: 240 },
-    kitchenDoor: { x: 700, y: 220 },
+    kitchen: { x: 750, y: 220 },
+    kitchenDoor: { x: 750, y: 210 },
     // Sub-agent waiting spots (near each table)
     subAgentSpots: [
       { x: 150, y: 350 },

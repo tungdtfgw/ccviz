@@ -33,6 +33,7 @@
 - **Real-time visualization** of Claude Code sessions as pub customers
 - **Team-based identity** - each session gets a unique football team (8 teams available)
 - **Context tracking** - beer towers show remaining context (fills up as you code)
+- **Day/night cycle** - realistic 2-minute cycle simulating 24 hours with lighting effects
 - **Subagent visualization** - helper agents appear near their parent session
 - **MCP tool calls** - visualized as food orders from the kitchen
 - **NPC interactions** - bartender, waiter, and chef with speech bubbles
@@ -70,23 +71,24 @@ open http://localhost:5173
 ## How It Works
 
 ```
-┌─────────────────┐    HTTP Events    ┌─────────────────┐
-│   Claude Code   │ ───────────────── │  ccviz Server   │
-│  (with hooks)   │    Port 3847      │ (Express + WS)  │
-└─────────────────┘                   └────────┬────────┘
+┌─────────────────┐    HTTP Events    ┌──────────────────┐
+│   Claude Code   │ ───────────────── │  ccviz Server    │
+│  (with hooks)   │    Port 3847      │(Express+Socket.io)
+└─────────────────┘                   └────────┬─────────┘
                                                │
                                           WebSocket
                                                │
                                       ┌────────▼────────┐
                                       │ Browser Client  │
-                                      │  (Phaser.js)    │
+                                      │  (Phaser 3)     │
                                       └─────────────────┘
 ```
 
-1. **Hooks** are installed into Claude Code's `.claude/settings.json`
-2. When you use Claude Code, hooks send events to ccviz server
-3. The Phaser.js frontend visualizes events in real-time
-4. Each session becomes a customer with their team colors
+1. **Hooks** are installed into Claude Code's `.claude/` directory
+2. When you use Claude Code, hooks send events to ccviz server on port 3847
+3. Server handles REST events and maintains real-time state via Socket.io
+4. Phaser.js frontend visualizes events in real-time with animations
+5. Each session becomes a customer with their unique team colors and context tracking
 
 ## Visualization Guide
 
@@ -96,9 +98,10 @@ open http://localhost:5173
 | **Beer tower** | Context usage - drains as context fills |
 | **Team logo** on table | Session identifier |
 | **Bartender** | Main Claude Code instance |
-| **Waiter** (claude-kit) | Response delivery |
+| **Waiter** | Response delivery, controls day/night lighting |
 | **Chef** | MCP tool call handler |
 | **Subagent** | Task agents (Explore, Bash, etc.) |
+| **Wall clock** | Synced to day/night cycle |
 | **Speech bubbles** | MCP calls, greetings, interactions |
 | **TV display** | Live session statistics |
 
@@ -144,14 +147,19 @@ npm start
 ```
 ccviz/
 ├── src/
-│   ├── client/           # Phaser.js frontend
-│   │   ├── scenes/       # Game scenes (BarScene, PreloadScene)
-│   │   ├── sprites/      # Game objects (Customer, NPCs, etc.)
-│   │   └── state/        # State management
-│   ├── server/           # Express HTTP + WebSocket server
-│   └── shared/           # Shared types and constants
-├── scripts/              # CLI tools (install, uninstall)
-└── public/               # Static assets (sprites, fonts)
+│   ├── client/              # Phaser.js frontend (~6500 LOC)
+│   │   ├── scenes/          # Game scenes (BarScene, PreloadScene, HUDScene)
+│   │   ├── sprites/         # Game objects (SessionCustomer, Waiter, Chef, etc.)
+│   │   ├── managers/        # AudioManager, DayNightController
+│   │   ├── state/           # BarState (EventEmitter-based global state)
+│   │   └── utils/           # Helper utilities
+│   ├── server/              # Express HTTP + Socket.io server (~300 LOC)
+│   ├── shared/              # Shared types, constants, team configs (~230 LOC)
+│   └── vite-env.d.ts        # Vite type definitions
+├── scripts/                 # CLI tools (install, uninstall, start)
+├── public/                  # Static assets (sprites, fonts)
+├── tests/                   # Test suite
+└── docs/                    # Documentation
 ```
 
 ## License

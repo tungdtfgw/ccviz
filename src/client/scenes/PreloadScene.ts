@@ -75,7 +75,7 @@ export class PreloadScene extends Phaser.Scene {
     this.createSimpleTexture('sign-closed', 64, 24, this.drawClosedSign.bind(this));
     this.createSimpleTexture('sign-rate-limit', 80, 32, this.drawRateLimitSign.bind(this));
     this.createSimpleTexture('table', 80, 48, this.drawTable.bind(this));
-    this.createSimpleTexture('kitchen-door', 80, 120, this.drawKitchenDoor.bind(this));
+    this.createSimpleTexture('kitchen-door', 80, 140, this.drawKitchenDoor.bind(this));
     this.createSimpleTexture('tv-frame', 180, 100, this.drawTVFrame.bind(this));
     this.createSimpleTexture('trophy-worldcup', 36, 50, this.drawTrophyWorldCup.bind(this));
     this.createSimpleTexture('trophy-champions', 40, 50, this.drawTrophyChampions.bind(this));
@@ -834,66 +834,70 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private drawKitchenDoor(ctx: CanvasRenderingContext2D) {
+    // "KITCHEN" label above door (pixel art letters)
+    ctx.fillStyle = '#FFFFFF';
+    const labelY = 4; // Top area above door
+    // K
+    ctx.fillRect(12, labelY, 2, 10);
+    ctx.fillRect(14, labelY + 5, 2, 2);
+    ctx.fillRect(16, labelY, 2, 2);
+    ctx.fillRect(16, labelY + 8, 2, 2);
+    // I
+    ctx.fillRect(20, labelY, 2, 10);
+    // T
+    ctx.fillRect(24, labelY, 6, 2);
+    ctx.fillRect(26, labelY + 2, 2, 8);
+    // C
+    ctx.fillRect(32, labelY, 6, 2);
+    ctx.fillRect(32, labelY + 2, 2, 6);
+    ctx.fillRect(32, labelY + 8, 6, 2);
+    // H
+    ctx.fillRect(40, labelY, 2, 10);
+    ctx.fillRect(44, labelY, 2, 10);
+    ctx.fillRect(40, labelY + 5, 6, 2);
+    // E
+    ctx.fillRect(48, labelY, 6, 2);
+    ctx.fillRect(48, labelY + 2, 2, 6);
+    ctx.fillRect(48, labelY + 5, 4, 2);
+    ctx.fillRect(48, labelY + 8, 6, 2);
+    // N
+    ctx.fillRect(56, labelY, 2, 10);
+    ctx.fillRect(60, labelY, 2, 10);
+    ctx.fillRect(56, labelY, 6, 2);
+
+    // Door starts at y=20 (after label area)
+    const doorY = 20;
+
     // Door frame (wood)
     ctx.fillStyle = '#5D4037';
-    ctx.fillRect(0, 0, 80, 120);
+    ctx.fillRect(0, doorY, 80, 120);
 
     // Door inner frame
     ctx.fillStyle = '#3E2723';
-    ctx.fillRect(8, 8, 64, 104);
+    ctx.fillRect(8, doorY + 8, 64, 104);
 
     // Door panels (two)
     ctx.fillStyle = '#4E342E';
-    ctx.fillRect(12, 12, 56, 45);
-    ctx.fillRect(12, 62, 56, 45);
+    ctx.fillRect(12, doorY + 12, 56, 45);
+    ctx.fillRect(12, doorY + 62, 56, 45);
 
     // Circular window (porthole)
     ctx.fillStyle = '#81D4FA';
     ctx.beginPath();
-    ctx.arc(40, 35, 18, 0, Math.PI * 2);
+    ctx.arc(40, doorY + 35, 18, 0, Math.PI * 2);
     ctx.fill();
 
     // Window frame
     ctx.strokeStyle = '#795548';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(40, 35, 18, 0, Math.PI * 2);
+    ctx.arc(40, doorY + 35, 18, 0, Math.PI * 2);
     ctx.stroke();
 
     // Door handle
     ctx.fillStyle = '#BDBDBD';
-    ctx.fillRect(60, 60, 8, 4);
-    ctx.fillRect(64, 58, 4, 8);
-
-    // "KITCHEN" label at top edge of door (pixel art letters)
-    ctx.fillStyle = '#FFFFFF';
-    // K
-    ctx.fillRect(12, 12, 2, 10);
-    ctx.fillRect(14, 17, 2, 2);
-    ctx.fillRect(16, 12, 2, 2);
-    ctx.fillRect(16, 20, 2, 2);
-    // I
-    ctx.fillRect(20, 12, 2, 10);
-    // T
-    ctx.fillRect(24, 12, 6, 2);
-    ctx.fillRect(26, 14, 2, 8);
-    // C
-    ctx.fillRect(32, 12, 6, 2);
-    ctx.fillRect(32, 14, 2, 6);
-    ctx.fillRect(32, 20, 6, 2);
-    // H
-    ctx.fillRect(40, 12, 2, 10);
-    ctx.fillRect(44, 12, 2, 10);
-    ctx.fillRect(40, 17, 6, 2);
-    // E
-    ctx.fillRect(48, 12, 6, 2);
-    ctx.fillRect(48, 14, 2, 6);
-    ctx.fillRect(48, 17, 4, 2);
-    ctx.fillRect(48, 20, 6, 2);
-    // N
-    ctx.fillRect(56, 12, 2, 10);
-    ctx.fillRect(60, 12, 2, 10);
-    ctx.fillRect(56, 12, 6, 2);
+    ctx.fillRect(60, doorY + 60, 8, 4);
+    ctx.fillRect(64, doorY + 58, 4, 8);
   }
 
   private drawTVFrame(ctx: CanvasRenderingContext2D) {
